@@ -60,6 +60,18 @@
         color: #ffffff !important;
         border-bottom-color: #ffffff !important;
     }
+
+    @media (min-width: 768px) {
+        .navbar-center {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            margin: 0 !important;
+            width: max-content;
+            z-index: 10;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -71,31 +83,36 @@
 <div class="d-flex h-100 text-center text-white">
     <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
         <header class="mb-auto">
-            <div class="row align-items-center g-0 w-100">
-                <div class="col text-start">
-                    <h3 class="mb-0">
+            <nav class="navbar navbar-expand-md navbar-dark bg-transparent w-100 p-0">
+                <div class="container-fluid px-0 position-relative">
+                    <a class="navbar-brand mb-0 h3 fw-bold" href="{% url 'evolve_site:home' %}">
                         <i class="bi bi-ev-station-fill"></i> Evolve
-                    </h3>
+                    </a>
+                    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false"
+                        aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarCollapse">
+                        <nav
+                            class="nav nav-masthead navbar-nav navbar-center mx-auto mb-2 mb-md-0 justify-content-center">
+                            <a class="nav-link fw-bold py-1 px-0 active" href="{% url 'evolve_site:home' %}">Home</a>
+                            <a class="nav-link fw-bold py-1 px-0" href="{% url 'evolve_site:calculator' %}">Savings</a>
+                            <a class="nav-link fw-bold py-1 px-0" href="{% url 'evolve_site:level2_calculator' %}">Level
+                                2</a>
+                            <a class="nav-link fw-bold py-1 px-0"
+                                href="{% url 'evolve_site:station_list' %}">Stations</a>
+                        </nav>
+                        <nav class="nav nav-masthead navbar-nav ms-auto justify-content-end">
+                            {% if user.is_authenticated %}
+                            <a class="nav-link fw-bold py-1 px-0" href="{% url 'evolve_site:logout' %}">Logout</a>
+                            {% else %}
+                            <a class="nav-link fw-bold py-1 px-0" href="{% url 'evolve_site:login' %}">Login</a>
+                            {% endif %}
+                        </nav>
+                    </div>
                 </div>
-                <div class="col-auto">
-                    <nav class="nav nav-masthead justify-content-center">
-                        <a class="nav-link fw-bold py-1 px-0 active" href="{% url 'evolve_site:home' %}">Home</a>
-                        <a class="nav-link fw-bold py-1 px-0" href="{% url 'evolve_site:calculator' %}">Savings</a>
-                        <a class="nav-link fw-bold py-1 px-0" href="{% url 'evolve_site:level2_calculator' %}">Level
-                            2</a>
-                        <a class="nav-link fw-bold py-1 px-0" href="{% url 'evolve_site:station_list' %}">Stations</a>
-                    </nav>
-                </div>
-                <div class="col text-end">
-                    <nav class="nav nav-masthead justify-content-end">
-                        {% if user.is_authenticated %}
-                        <a class="nav-link fw-bold py-1 px-0" href="{% url 'evolve_site:logout' %}">Logout</a>
-                        {% else %}
-                        <a class="nav-link fw-bold py-1 px-0" href="{% url 'evolve_site:login' %}">Login</a>
-                        {% endif %}
-                    </nav>
-                </div>
-            </div>
+            </nav>
         </header>
 
         <main class="px-3">
