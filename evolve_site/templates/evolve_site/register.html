@@ -1,0 +1,13 @@
+{% extends 'evolve_site/base.html' %}
+
+{% block title %}Register - Evolve{% endblock %}
+
+{% block content %}
+    <h2>Register</h2>
+    <p>Create an account to get started.</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Register</button>
+    </form>
+{% endblock %}

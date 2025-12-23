@@ -1,0 +1,212 @@
+{% extends 'evolve_site/base.html' %}
+
+{% block title %}EV Fuel Savings Calculator{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <h1>EV Fuel Savings Calculator</h1>
+            <form method="post" class="mt-4">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label for="{{ form.mpg.id_for_label }}" class="form-label">{{ form.mpg.label }}</label>
+                    <input type="number" step="0.1" name="mpg" class="form-control" id="{{ form.mpg.id_for_label }}" value="{{ form.mpg.value|default:'' }}" required>
+                    <div class="form-text">{{ form.mpg.help_text }}</div>
+                    {% if form.mpg.errors %}
+                        <div class="text-danger">{{ form.mpg.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.gas_price.id_for_label }}" class="form-label">{{ form.gas_price.label }}</label>
+                    <input type="number" step="0.01" name="gas_price" class="form-control" id="{{ form.gas_price.id_for_label }}" value="{{ form.gas_price.value|default:'' }}" required>
+                    <div class="form-text">{{ form.gas_price.help_text }}</div>
+                    {% if form.gas_price.errors %}
+                        <div class="text-danger">{{ form.gas_price.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.annual_miles.id_for_label }}" class="form-label">{{ form.annual_miles.label }}</label>
+                    <input type="number" name="annual_miles" class="form-control" id="{{ form.annual_miles.id_for_label }}" value="{{ form.annual_miles.value|default:'' }}" required>
+                    <div class="form-text">{{ form.annual_miles.help_text }}</div>
+                    {% if form.annual_miles.errors %}
+                        <div class="text-danger">{{ form.annual_miles.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.electricity_cost.id_for_label }}" class="form-label">{{ form.electricity_cost.label }}</label>
+                    <input type="number" step="0.01" name="electricity_cost" class="form-control" id="{{ form.electricity_cost.id_for_label }}" value="{{ form.electricity_cost.value|default:'' }}" required>
+                    <div class="form-text">{{ form.electricity_cost.help_text }}</div>
+                    {% if form.electricity_cost.errors %}
+                        <div class="text-danger">{{ form.electricity_cost.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.model_year.id_for_label }}" class="form-label">{{ form.model_year.label }}</label>
+                    <select name="model_year" class="form-select" id="{{ form.model_year.id_for_label }}" required>
+                        {% for value, label in form.model_year.field.choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    {% if form.model_year.errors %}
+                        <div class="text-danger">{{ form.model_year.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.manufacturer.id_for_label }}" class="form-label">{{ form.manufacturer.label }}</label>
+                    <select name="manufacturer" class="form-select" id="{{ form.manufacturer.id_for_label }}" required disabled>
+                        <option value="">--- Choose a Make ---</option>
+                    </select>
+                    {% if form.manufacturer.errors %}
+                        <div class="text-danger">{{ form.manufacturer.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.model.id_for_label }}" class="form-label">{{ form.model.label }}</label>
+                    <select name="model" class="form-select" id="{{ form.model.id_for_label }}" required disabled>
+                        <option value="">--- Choose a Model ---</option>
+                    </select>
+                    {% if form.model.errors %}
+                        <div class="text-danger">{{ form.model.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="btn btn-primary">Calculate</button>
+            </form>
+
+            {% if results %}
+            <div class="mt-5 p-4 bg-light rounded">
+                <h2>Results for the {{ results.selected_ev }}</h2>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4>Annual Costs</h4>
+                        <p>Gas Vehicle: <strong>${{ results.annual_gas_cost }}</strong></p>
+                        <p>Electric Vehicle: <strong>${{ results.annual_electricity_cost }}</strong></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h4>Savings</h4>
+                        <p>Annual: <strong class="text-success">${{ results.annual_savings }}</strong></p>
+                        <p>Monthly: <strong class="text-success">${{ results.monthly_savings }}</strong></p>
+                        <p>Over 5 Years: <strong class="text-success">${{ results.five_year_savings }}</strong></p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="accordion mt-4" id="methodologyAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="methodologyHeading">
+                        <button class="accordion-button collapsed" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#methodologyCollapse"
+                                aria-expanded="false" aria-controls="methodologyCollapse">
+                            How We Calculate Your Savings
+                        </button>
+                    </h2>
+                    <div id="methodologyCollapse" class="accordion-collapse collapse" 
+                         aria-labelledby="methodologyHeading" data-bs-parent="#methodologyAccordion">
+                        <div class="accordion-body">
+                            <h6>Fuel Savings Formula</h6>
+                            <p><strong>Annual Gas Cost</strong> = (Annual Miles ÷ MPG) × Gas Price per Gallon</p>
+                            <p><strong>Annual Electricity Cost</strong> = (Annual Miles × EV Efficiency in Wh/mile ÷ 1000) × Electricity Rate per kWh</p>
+                            <p><strong>Annual Savings</strong> = Annual Gas Cost − Annual Electricity Cost</p>
+                            
+                            <h6 class="mt-3">Data Sources</h6>
+                            <ul>
+                                <li><strong>EV Specifications:</strong> EPA-rated range and battery capacity from manufacturer data</li>
+                                <li><strong>Efficiency Calculation:</strong> Battery Capacity (kWh) × 1000 ÷ EPA Range (miles) = Wh/mile</li>
+                            </ul>
+                            
+                            <h6 class="mt-3">Assumptions</h6>
+                            <ul>
+                                <li>Home charging at the electricity rate you provide</li>
+                                <li>Consistent driving patterns throughout the year</li>
+                                <li>Does not account for public charging costs or time-of-use rates</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    $(document).ready(function() {
+        // Initialize Select2 on all select elements with proper width
+        $('#id_model_year').select2({
+            theme: 'bootstrap-5',
+            placeholder: '--- Choose a Year ---',
+            allowClear: true,
+            width: '100%'
+        });
+        
+        $('#id_manufacturer').select2({
+            theme: 'bootstrap-5',
+            placeholder: '--- Choose a Make ---',
+            allowClear: true,
+            width: '100%'
+        });
+        
+        $('#id_model').select2({
+            theme: 'bootstrap-5',
+            placeholder: '--- Choose a Model ---',
+            allowClear: true,
+            width: '100%'
+        });
+
+        const yearSelect = $('#id_model_year');
+        const makeSelect = $('#id_manufacturer');
+        const modelSelect = $('#id_model');
+
+        function updateSelectOptions(selectElement, options, placeholder) {
+            selectElement.empty();
+            selectElement.append(`<option value="">--- ${placeholder} ---</option>`);
+            options.forEach(option => {
+                selectElement.append(`<option value="${option}">${option}</option>`);
+            });
+            selectElement.prop('disabled', false);
+        }
+
+        yearSelect.on('change', function() {
+            const year = $(this).val();
+            makeSelect.empty().append('<option value="">--- Loading... ---</option>');
+            modelSelect.empty().append('<option value="">--- Choose a Make First ---</option>');
+            makeSelect.prop('disabled', true);
+            modelSelect.prop('disabled', true);
+
+            if (year) {
+                fetch(`/api/manufacturers/?year=${year}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        updateSelectOptions(makeSelect, data.manufacturers, 'Choose a Make');
+                    });
+            }
+        });
+
+        makeSelect.on('change', function() {
+            const year = yearSelect.val();
+            const make = $(this).val();
+            modelSelect.empty().append('<option value="">--- Loading... ---</option>');
+            modelSelect.prop('disabled', true);
+
+            if (year && make) {
+                fetch(`/api/models/?year=${year}&manufacturer=${make}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        updateSelectOptions(modelSelect, data.models, 'Choose a Model');
+                    });
+            }
+        });
+    });
+</script>
+{% endblock %}

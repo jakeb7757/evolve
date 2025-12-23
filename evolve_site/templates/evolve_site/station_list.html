@@ -1,0 +1,455 @@
+{% extends 'evolve_site/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Find DC Fast Charging Stations</h2>
+    <form method="get" class="mb-4" id="search-form">
+        <!-- Search Type Radio Buttons -->
+        <div class="mb-3">
+            <label class="form-label"><strong>Search By:</strong></label>
+            <div class="d-flex gap-3">
+                {% for value, label in form.search_type.field.choices %}
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="search_type" id="search_type_{{ value }}" 
+                           value="{{ value }}" {% if form.search_type.value == value or not form.search_type.value and value == 'zip' %}checked{% endif %}>
+                    <label class="form-check-label" for="search_type_{{ value }}">
+                        {{ label }}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="row g-3">
+            <!-- Zip Code Field -->
+            <div class="col-md-8" id="zip-field">
+                <label for="id_zip_code" class="form-label">Zip Code</label>
+                {{ form.zip_code }}
+                {% if form.zip_code.errors %}
+                    <div class="text-danger">{{ form.zip_code.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <!-- City/State Field -->
+            <div class="col-md-8" id="city-field" style="display: none;">
+                <label for="id_city_state" class="form-label">City, State</label>
+                {{ form.city_state }}
+                {% if form.city_state.errors %}
+                    <div class="text-danger">{{ form.city_state.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100" id="search-btn">
+                    <span id="search-text">Search</span>
+                    <span id="search-spinner" class="spinner-border spinner-border-sm ms-2" role="status" style="display: none;">
+                        <span class="visually-hidden">Loading...</span>
+                    </span>
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Loading indicator for full page -->
+    <div id="loading-indicator" style="display: none;">
+        <div class="text-center my-5">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Searching for charging stations...</p>
+        </div>
+    </div>
+
+    {% if error_message %}
+        <div class="alert alert-warning">{{ error_message }}</div>
+    {% endif %}
+
+    {% if page_obj %}
+        <!-- Filter Controls -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Filter Results</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="connector-filter" class="form-label">Connector Type</label>
+                        <select id="connector-filter" class="form-select">
+                            <option value="">All Connectors</option>
+                            <option value="CHADEMO">CHAdeMO</option>
+                            <option value="J1772COMBO">CCS</option>
+                            <option value="TESLA">Tesla/NACS</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="network-filter" class="form-label">Network</label>
+                        <select id="network-filter" class="form-select">
+                            <option value="">All Networks</option>
+                            <option value="Tesla">Tesla Supercharger</option>
+                            <option value="Electrify America">Electrify America</option>
+                            <option value="EVgo">EVgo</option>
+                            <option value="ChargePoint">ChargePoint</option>
+                            <option value="Blink">Blink</option>
+                            <option value="Francis">Francis Energy</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-info" id="station-count">
+            Found {{ paginator.count }} DC fast charging station{{ paginator.count|pluralize }}.
+            Showing page {{ page_obj.number }} of {{ paginator.num_pages }}
+        </div>
+        
+        <div class="list-group" id="station-list">
+            {% for station in page_obj %}
+                <div class="list-group-item station-item" 
+                     data-connectors="{{ station.ev_connector_types|join:',' }}"
+                     data-network="{{ station.ev_network|default:'' }}">
+                    <div class="d-flex w-100 justify-content-between align-items-start">
+                        <div>
+                            <h5 class="mb-1">{{ station.station_name }}</h5>
+                            <p class="mb-1 text-muted">
+                                <i class="bi bi-geo-alt"></i> {{ station.street_address }}, {{ station.city }}, {{ station.state }} {{ station.zip }}
+                            </p>
+                            <p class="mb-1">
+                                <i class="bi bi-telephone"></i> {{ station.station_phone|default:"N/A" }}
+                                {% if station.distance %}
+                                    <span class="ms-3"><i class="bi bi-signpost"></i> {{ station.distance|floatformat:1 }} miles</span>
+                                {% endif %}
+                            </p>
+                            
+                            <!-- Charging Information -->
+                            <div class="mt-2">
+                                <strong>Chargers:</strong> 
+                                <span class="badge bg-info text-dark">{{ station.ev_dc_fast_num|default:"?" }} Connector{{ station.ev_dc_fast_num|pluralize }}</span>
+                                
+                                <!-- Max Power -->
+                                {% if station.max_power_kw %}
+                                    <span class="badge bg-warning text-dark ms-1">
+                                        <i class="bi bi-lightning-charge-fill"></i> Up to {{ station.max_power_kw|floatformat:0 }} kW
+                                    </span>
+                                {% endif %}
+                                
+                                <!-- Connector Types -->
+                                {% if station.ev_connector_types %}
+                                    <div class="mt-1">
+                                        <small><strong>Connectors:</strong></small>
+                                        {% for connector in station.ev_connector_types %}
+                                            {% if 'CHADEMO' in connector %}
+                                                <span class="badge bg-primary ms-1">CHAdeMO</span>
+                                            {% endif %}
+                                            {% if 'J1772COMBO' in connector or 'CCS' in connector %}
+                                                <span class="badge bg-success ms-1">CCS</span>
+                                            {% endif %}
+                                            {% if 'TESLA' in connector %}
+                                                <span class="badge bg-danger ms-1">Tesla/NACS</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                
+                                <!-- Network -->
+                                {% if station.ev_network %}
+                                    <div class="mt-1">
+                                        <small><strong>Network:</strong> {{ station.ev_network }}</small>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Status Badge -->
+                        <div class="d-flex align-items-center">
+                            {% if station.local_status == 'Working' %}
+                                <span class="badge bg-success">Working</span>
+                            {% elif station.local_status == 'Broken' %}
+                                <span class="badge bg-danger">Broken</span>
+                            {% elif station.local_status == 'Busy' %}
+                                <span class="badge bg-warning text-dark">Busy</span>
+                            {% else %}
+                                <span class="badge bg-secondary">No Report</span>
+                            {% endif %}
+                            
+                            {% if user.is_authenticated %}
+                                <button type="button" class="btn btn-sm btn-outline-primary ms-2" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#statusModal"
+                                        data-station-id="{{ station.id }}"
+                                        data-station-name="{{ station.station_name }}"
+                                        aria-label="Report status for {{ station.station_name }}">
+                                    Report Status
+                                </button>
+                            {% else %}
+                                <small class="text-muted ms-2">
+                                    <a href="{% url 'evolve_site:login' %}">Login</a> to report
+                                </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination Controls (ADR-0005 FR-BASELINE-2) -->
+        {% if paginator.num_pages > 1 %}
+        <nav aria-label="Station list pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1" aria-label="First">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&laquo;&laquo;</span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">&laquo;</span>
+                    </li>
+                {% endif %}
+
+                {% for num in paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active" aria-current="page">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ paginator.num_pages }}" aria-label="Last">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&raquo;</span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">&raquo;&raquo;</span>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% block extra_scripts %}
+        <script>
+            $(document).ready(function() {
+                // Load city data and initialize Select2
+                $.getJSON("{% static 'evolve_site/data/us_cities.json' %}", function(cityData) {
+                    $('#id_city_state').select2({
+                        theme: 'bootstrap-5',
+                        placeholder: 'Start typing a city...',
+                        allowClear: true,
+                        data: cityData,
+                        tags: true  // Allow custom entries
+                    });
+                });
+                
+                // Initialize Select2 on filter dropdowns
+                $('#connector-filter').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'All Connectors',
+                    allowClear: true,
+                    minimumResultsForSearch: -1 // Hide search for small lists
+                });
+                
+                $('#network-filter').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'All Networks',
+                    allowClear: true
+                });
+                
+                // Toggle between zip and city fields based on radio selection
+                function toggleSearchFields() {
+                    const searchType = $('input[name="search_type"]:checked').val();
+                    if (searchType === 'zip') {
+                        $('#zip-field').show();
+                        $('#city-field').hide();
+                        $('#id_zip_code').prop('required', true);
+                        $('#id_city_state').prop('required', false);
+                    } else {
+                        $('#zip-field').hide();
+                        $('#city-field').show();
+                        $('#id_zip_code').prop('required', false);
+                        $('#id_city_state').prop('required', true);
+                    }
+                }
+                
+                // Initialize on page load
+                toggleSearchFields();
+                
+                // Toggle on radio change
+                $('input[name="search_type"]').on('change', toggleSearchFields);
+
+                // Existing filter logic
+                const connectorFilter = $('#connector-filter');
+                const networkFilter = $('#network-filter');
+                const stationItems = $('.station-item');
+                const stationCount = $('#station-count');
+                const totalStations = {{ paginator.count }};
+
+                function filterStations() {
+                    const selectedConnector = connectorFilter.val() ? connectorFilter.val().toUpperCase() : '';
+                    const selectedNetwork = networkFilter.val() ? networkFilter.val().toLowerCase() : '';
+                    let visibleCount = 0;
+
+                    stationItems.each(function() {
+                        const connectors = $(this).data('connectors').toString().toUpperCase();
+                        const network = $(this).data('network').toString().toLowerCase();
+
+                        const matchesConnector = !selectedConnector || connectors.includes(selectedConnector);
+                        const matchesNetwork = !selectedNetwork || network.includes(selectedNetwork);
+
+                        if (matchesConnector && matchesNetwork) {
+                            $(this).show();
+                            visibleCount++;
+                        } else {
+                            $(this).hide();
+                        }
+                    });
+
+                    // Update count
+                    const plural = visibleCount !== 1 ? 's' : '';
+                    let countText = `Showing ${visibleCount} of {{ page_obj|length }} station${plural} on this page`;
+                    if (selectedConnector || selectedNetwork) {
+                        countText += ' matching your filters';
+                    }
+                    stationCount.text(countText + '. Total: {{ paginator.count }} stations.');
+                }
+
+                connectorFilter.on('change', filterStations);
+                networkFilter.on('change', filterStations);
+            });
+
+            // Loading indicator for search
+            $('#search-form').on('submit', function() {
+                const searchBtn = $('#search-btn');
+                const searchSpinner = $('#search-spinner');
+                const loadingIndicator = $('#loading-indicator');
+                
+                searchBtn.prop('disabled', true);
+                searchSpinner.show();
+                loadingIndicator.show();
+                
+                const stationList = $('#station-list');
+                if (stationList.length) {
+                    stationList.hide();
+                }
+            });
+        </script>
+        {% endblock %}
+    {% elif request.GET.zip_code or request.GET.city_state %}
+        <div class="alert alert-info">No stations found. Try a different location.</div>
+    {% endif %}
+
+    <!-- Status Report Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1" 
+     aria-labelledby="statusModalLabel" aria-hidden="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="statusModalLabel">Report Station Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" 
+                        aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="modal-station-name" class="fw-bold"></p>
+                <form id="status-form">
+                    {% csrf_token %}
+                    <input type="hidden" id="station-id" name="station_id">
+                    <fieldset>
+                        <legend class="form-label">Current Status:</legend>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="status" 
+                                   id="status-working" value="Working" required>
+                            <label class="form-check-label" for="status-working">
+                                ✅ Working
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="status" 
+                                   id="status-broken" value="Broken">
+                            <label class="form-check-label" for="status-broken">
+                                ❌ Broken
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="status" 
+                                   id="status-busy" value="Busy">
+                            <label class="form-check-label" for="status-busy">
+                                ⏳ Busy
+                            </label>
+                        </div>
+                    </fieldset>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submit-status">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('statusModal');
+    const form = document.getElementById('status-form');
+    
+    if (modal && form) {
+        modal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            document.getElementById('station-id').value = button.dataset.stationId;
+            document.getElementById('modal-station-name').textContent = button.dataset.stationName;
+            // Reset form
+            form.reset();
+        });
+        
+        const submitButton = document.getElementById('submit-status');
+        if (submitButton) {
+            submitButton.addEventListener('click', function() {
+                const formData = new FormData(form);
+                fetch("{% url 'evolve_site:submit_station_status' %}", {
+                    method: 'POST',
+                    body: formData,
+                    headers: {'X-CSRFToken': formData.get('csrfmiddlewaretoken')}
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const modalInstance = bootstrap.Modal.getInstance(modal);
+                        modalInstance.hide();
+                        location.reload(); // Simple refresh to show updated status
+                    } else {
+                        alert('Error submitting status. Please try again.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error submitting status. Please try again.');
+                });
+            });
+        }
+    }
+});
+</script>
+</div>
+{% endblock %}

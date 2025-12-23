@@ -1,0 +1,17 @@
+asgiref==3.9.2
+bleach==6.2.0
+colorama==0.4.6
+Django==5.2.7
+django-bootstrap5==25.2
+django-taggit==6.1.0
+gunicorn==23.0.0
+Markdown==3.9
+pillow==12.0.0
+psycopg2-binary==2.9.11
+python-dotenv==1.1.1
+sqlparse==0.5.3
+tzdata==2025.2
+webencodings==0.5.1
+geopy
+whitenoise==6.8.2
+requests

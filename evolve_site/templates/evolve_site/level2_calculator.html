@@ -1,0 +1,146 @@
+{% extends 'evolve_site/base.html' %}
+
+{% block title %}Level 2 Charger Decision Calculator{% endblock %}
+
+{% block content %}
+  <div class="container mt-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-8 col-md-10">
+        <h1>Level 2 Charger Decision Calculator</h1>
+        <form method="post" class="mt-4" aria-label="Level 2 Charger Calculator">
+          {% csrf_token %}
+          {{ form.as_p }}
+          <button type="submit" class="btn btn-primary" aria-label="Calculate Recommendation">Calculate</button>
+        </form>
+
+        {% if recommendation %}
+          <div class="mt-5 p-4 bg-light rounded" role="status">
+            <h2>Recommendation</h2>
+            <hr>
+            <p class="lead">{{ recommendation }}</p>
+            {% if charge_hours_110 and charge_hours_240 %}
+              <p>
+                <strong>Estimated hours to recharge daily use:</strong><br>
+                <span>On 110V: {{ charge_hours_110 }} hours</span><br>
+                <span>On 240V: {{ charge_hours_240 }} hours</span>
+              </p>
+            {% endif %}
+            {% if selected_ev %}
+              <p><strong>Selected EV:</strong> {{ selected_ev }}</p>
+              <p><strong>Battery Capacity:</strong> {{ selected_ev.battery_capacity_kwh }} kWh</p>
+              <p><strong>EPA Range:</strong> {{ selected_ev.epa_range_miles }} miles</p>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        <div class="accordion mt-4" id="methodologyAccordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="methodologyHeading">
+              <button class="accordion-button collapsed" type="button" 
+                      data-bs-toggle="collapse" data-bs-target="#methodologyCollapse"
+                      aria-expanded="false" aria-controls="methodologyCollapse">
+                How We Calculate Your Recommendation
+              </button>
+            </h2>
+            <div id="methodologyCollapse" class="accordion-collapse collapse" 
+                 aria-labelledby="methodologyHeading" data-bs-parent="#methodologyAccordion">
+              <div class="accordion-body">
+                <h6>Charging Time Formula</h6>
+                <p><strong>Daily Energy Needed</strong> = (Daily Miles ÷ EPA Range) × Battery Capacity (kWh)</p>
+                <p><strong>Level 1 (110V) Charging Time</strong> = Daily Energy ÷ 1.4 kW</p>
+                <p><strong>Level 2 (240V) Charging Time</strong> = Daily Energy ÷ 7.2 kW</p>
+                
+                <h6 class="mt-3">Charging Rates</h6>
+                <ul>
+                  <li><strong>Level 1 (Standard 110V outlet):</strong> ~1.4 kW (adds ~4-5 miles of range per hour)</li>
+                  <li><strong>Level 2 (240V dedicated circuit):</strong> ~7.2 kW (adds ~25-30 miles of range per hour)</li>
+                </ul>
+                
+                <h6 class="mt-3">Our Recommendation Logic</h6>
+                <p>If the Level 1 charging time exceeds your available overnight charging hours, we recommend installing a Level 2 charger for convenience and to ensure your vehicle is fully charged each morning.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    $(document).ready(function() {
+        // Initialize Select2 on all select elements
+        $('#id_model_year').select2({
+            theme: 'bootstrap-5',
+            placeholder: '--- Choose a Year ---',
+            allowClear: true,
+            width: '100%'
+        });
+        
+        $('#id_manufacturer').select2({
+            theme: 'bootstrap-5',
+            placeholder: '--- Choose a Make ---',
+            allowClear: true,
+            width: '100%'
+        });
+        
+        $('#id_model').select2({
+            theme: 'bootstrap-5',
+            placeholder: '--- Choose a Model ---',
+            allowClear: true,
+            width: '100%'
+        });
+        
+        $('#id_home_voltage').select2({
+            theme: 'bootstrap-5',
+            minimumResultsForSearch: -1, // Hide search for small lists
+            width: '100%'
+        });
+
+        const yearSelect = $('#id_model_year');
+        const makeSelect = $('#id_manufacturer');
+        const modelSelect = $('#id_model');
+
+        function updateSelectOptions(selectElement, options, placeholder) {
+            selectElement.empty();
+            selectElement.append(`<option value="">--- ${placeholder} ---</option>`);
+            options.forEach(option => {
+                selectElement.append(`<option value="${option}">${option}</option>`);
+            });
+            selectElement.prop('disabled', false);
+        }
+
+        yearSelect.on('change', function() {
+            const year = $(this).val();
+            makeSelect.empty().append('<option value="">--- Loading... ---</option>');
+            modelSelect.empty().append('<option value="">--- Choose a Make First ---</option>');
+            makeSelect.prop('disabled', true);
+            modelSelect.prop('disabled', true);
+
+            if (year) {
+                fetch(`/get_manufacturers/?year=${year}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        updateSelectOptions(makeSelect, data.manufacturers, 'Choose a Make');
+                    });
+            }
+        });
+
+        makeSelect.on('change', function() {
+            const year = yearSelect.val();
+            const make = $(this).val();
+            modelSelect.empty().append('<option value="">--- Loading... ---</option>');
+            modelSelect.prop('disabled', true);
+
+            if (year && make) {
+                fetch(`/get_models/?year=${year}&manufacturer=${make}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        updateSelectOptions(modelSelect, data.models, 'Choose a Model');
+                    });
+            }
+        });
+    });
+</script>
+{% endblock %}

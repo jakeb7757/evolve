@@ -1,0 +1,35 @@
+{% extends 'evolve_site/base.html' %}
+
+{% block title %}Level 2 Calculator Submissions Report{% endblock %}
+
+{% block content %}
+  <h2>Level 2 Calculator Submissions Report</h2>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>EV Model</th>
+        <th>Battery Capacity (kWh)</th>
+        <th>Daily Miles</th>
+        <th>Charging Hours</th>
+        <th>Home Voltage</th>
+        <th>Recommendation</th>
+        <th>Submitted At</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sub in submissions %}
+      <tr>
+        <td>{{ sub.user }}</td>
+        <td>{{ sub.ev_model }}</td>
+        <td>{{ sub.battery_capacity_kwh }}</td>
+        <td>{{ sub.daily_miles }}</td>
+        <td>{{ sub.charging_hours }}</td>
+        <td>{{ sub.home_voltage }}</td>
+        <td>{{ sub.recommendation }}</td>
+        <td>{{ sub.submitted_at }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
