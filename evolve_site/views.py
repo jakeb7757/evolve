@@ -2,7 +2,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import render
 from django.http import JsonResponse
 from .forms import FuelSavingsForm, RegisterForm, Level2ChargerForm, StationSearchForm
-from .models import ElectricVehicle, Level2CalculatorSubmission, StationStatus
+from .models import FuelEconomyVehicle, Level2CalculatorSubmission, StationStatus
 from .services import NRELClient
 from decimal import Decimal
 from django.views.generic import TemplateView, CreateView
@@ -20,12 +20,11 @@ from django.conf import settings
 
 def get_vehicle_year_choices():
     """
-    Return available EV model years without taking the page down when the
-    externally managed vehicle table has not been provisioned yet.
+    Return model years from the locally synchronized FuelEconomy.gov catalog.
     """
     try:
         years = (
-            ElectricVehicle.objects
+            FuelEconomyVehicle.objects.filter(is_active=True)
             .values_list('model_year', flat=True)
             .distinct()
             .order_by('-model_year')
@@ -43,7 +42,7 @@ def get_manufacturers(request):
     if year:
         try:
             manufacturers = list(
-                ElectricVehicle.objects.filter(model_year=year)
+                FuelEconomyVehicle.objects.filter(model_year=year, is_active=True)
                 .values_list('manufacturer', flat=True)
                 .distinct()
                 .order_by('manufacturer')
@@ -54,22 +53,72 @@ def get_manufacturers(request):
 
 def get_models(request):
     """
-    Returns a JSON list of models for a given year and manufacturer.
+    Return exact EPA vehicle options for a given year and manufacturer.
     """
     year = request.GET.get('year')
     manufacturer = request.GET.get('manufacturer')
     models = []
     if year and manufacturer:
         try:
-            models = list(
-                ElectricVehicle.objects.filter(model_year=year, manufacturer=manufacturer)
-                .values_list('model', flat=True)
-                .distinct()
-                .order_by('model')
-            )
+            models = get_vehicle_options(year, manufacturer)
         except DatabaseError:
             models = []
     return JsonResponse({'models': models})
+
+
+def get_vehicle_options(year, manufacturer):
+    vehicles = list(
+        FuelEconomyVehicle.objects.filter(
+            model_year=year,
+            manufacturer=manufacturer,
+            is_active=True,
+        ).order_by("model", "drivetrain", "fueleconomy_id")
+    )
+    label_counts = {}
+    for vehicle in vehicles:
+        label_counts[vehicle.option_label] = label_counts.get(vehicle.option_label, 0) + 1
+
+    return [
+        {
+            "id": vehicle.fueleconomy_id,
+            "label": (
+                f"{vehicle.option_label} · EPA #{vehicle.fueleconomy_id}"
+                if label_counts[vehicle.option_label] > 1
+                else vehicle.option_label
+            ),
+        }
+        for vehicle in vehicles
+    ]
+
+
+def populate_vehicle_form_choices(form, year=None, manufacturer=None):
+    """Populate and validate the shared dependent vehicle selectors."""
+    form.fields["model_year"].choices = get_vehicle_year_choices()
+    try:
+        manufacturers = (
+            FuelEconomyVehicle.objects.filter(model_year=year, is_active=True)
+            .values_list("manufacturer", flat=True)
+            .distinct()
+            .order_by("manufacturer")
+            if year
+            else []
+        )
+        form.fields["manufacturer"].choices = [
+            ("", "--- Choose a Make ---")
+        ] + [(make, make) for make in manufacturers]
+
+        options = get_vehicle_options(year, manufacturer) if year and manufacturer else []
+        form.fields["vehicle_id"].choices = [
+            ("", "--- Choose a Model ---")
+        ] + [(str(option["id"]), option["label"]) for option in options]
+    except DatabaseError:
+        form.fields["manufacturer"].choices = [
+            ("", "--- Vehicle data unavailable ---")
+        ]
+        form.fields["vehicle_id"].choices = [
+            ("", "--- Vehicle data unavailable ---")
+        ]
+
 
 def fuel_savings_calculator(request):
     """
@@ -78,19 +127,13 @@ def fuel_savings_calculator(request):
     context = {}
     results = {}
     
-    # Get distinct years for the initial form dropdown
-    year_choices = get_vehicle_year_choices()
-
     if request.method == 'POST':
         form = FuelSavingsForm(request.POST)
-        # Set choices dynamically for validation
-        form.fields['model_year'].choices = year_choices
-        # We need to provide choices for manufacturer and model for the form to be valid,
-        # even though they are selected via JS.
-        if 'manufacturer' in request.POST:
-            form.fields['manufacturer'].choices = [(request.POST['manufacturer'], request.POST['manufacturer'])]
-        if 'model' in request.POST:
-            form.fields['model'].choices = [(request.POST['model'], request.POST['model'])]
+        populate_vehicle_form_choices(
+            form,
+            request.POST.get("model_year"),
+            request.POST.get("manufacturer"),
+        )
 
         if form.is_valid():
             # Extract cleaned data from the form
@@ -99,19 +142,23 @@ def fuel_savings_calculator(request):
             annual_miles = form.cleaned_data['annual_miles']
             electricity_cost = form.cleaned_data['electricity_cost']
             
-            # Find the selected EV based on the three form fields
+            # Resolve the exact EPA option rather than ambiguous model text.
             try:
-                ev = ElectricVehicle.objects.get(
+                ev = FuelEconomyVehicle.objects.get(
+                    fueleconomy_id=form.cleaned_data['vehicle_id'],
                     model_year=form.cleaned_data['model_year'],
                     manufacturer=form.cleaned_data['manufacturer'],
-                    model=form.cleaned_data['model']
+                    is_active=True,
                 )
 
                 # Perform calculations
                 gallons_per_year = Decimal(annual_miles) / mpg
                 annual_gas_cost = gallons_per_year * gas_price
-                efficiency_decimal = Decimal(str(ev.efficiency_wh_per_mile))
-                kwh_per_year = (Decimal(annual_miles) * efficiency_decimal) / Decimal('1000')
+                kwh_per_year = (
+                    Decimal(annual_miles)
+                    * ev.combined_kwh_per_100_miles
+                    / Decimal('100')
+                )
                 annual_electricity_cost = kwh_per_year * electricity_cost
                 annual_savings = annual_gas_cost - annual_electricity_cost
 
@@ -123,12 +170,12 @@ def fuel_savings_calculator(request):
                     'five_year_savings': round(annual_savings * 5, 2),
                     'selected_ev': ev,
                 }
-            except ElectricVehicle.DoesNotExist:
+            except FuelEconomyVehicle.DoesNotExist:
                 form.add_error(None, "The selected electric vehicle could not be found.")
 
     else:
         form = FuelSavingsForm()
-        form.fields['model_year'].choices = year_choices
+        populate_vehicle_form_choices(form)
 
     context['form'] = form
     context['results'] = results
@@ -156,49 +203,36 @@ class Level2ChargerCalculatorView(FormView):
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        year_choices = get_vehicle_year_choices()
-        form.fields['model_year'].choices = year_choices
-
         year = self.request.POST.get('model_year') or self.request.GET.get('model_year')
-        if year:
-            manufacturers = ElectricVehicle.objects.filter(model_year=year).values_list('manufacturer', flat=True).distinct().order_by('manufacturer')
-            form.fields['manufacturer'].choices = [('', '--- Choose a Make ---')] + [(m, m) for m in manufacturers]
-        else:
-            form.fields['manufacturer'].choices = [('', '--- Choose a Make ---')]
-
         manufacturer = self.request.POST.get('manufacturer') or self.request.GET.get('manufacturer')
-        if year and manufacturer:
-            models = ElectricVehicle.objects.filter(model_year=year, manufacturer=manufacturer).values_list('model', flat=True).distinct().order_by('model')
-            form.fields['model'].choices = [('', '--- Choose a Model ---')] + [(m, m) for m in models]
-        else:
-            form.fields['model'].choices = [('', '--- Choose a Model ---')]
+        populate_vehicle_form_choices(form, year, manufacturer)
         return form
 
     def form_valid(self, form):
         year = form.cleaned_data['model_year']
         manufacturer = form.cleaned_data['manufacturer']
-        model = form.cleaned_data['model']
+        vehicle_id = form.cleaned_data['vehicle_id']
         daily_miles = form.cleaned_data['daily_miles']
         charging_hours = form.cleaned_data['charging_hours']
-        home_voltage = form.cleaned_data['home_voltage']
 
-        # Fetch the first matching EV from database
-        ev = (
-            ElectricVehicle.objects
-            .filter(model_year=year, manufacturer=manufacturer, model=model)
-            .order_by('id')
-            .first()
-        )
+        ev = FuelEconomyVehicle.objects.filter(
+            fueleconomy_id=vehicle_id,
+            model_year=year,
+            manufacturer=manufacturer,
+            is_active=True,
+        ).first()
         if not ev:
-            return self.render_to_response(self.get_context_data(form=form, recommendation="Selected EV not found."))
+            form.add_error("vehicle_id", "Selected EV not found.")
+            return self.form_invalid(form)
 
-        battery_capacity = float(ev.battery_capacity_kwh)
-        epa_range = float(ev.epa_range_miles)
+        daily_kwh_needed = (
+            Decimal(daily_miles)
+            * ev.combined_kwh_per_100_miles
+            / Decimal("100")
+        )
 
-        daily_kwh_needed = (daily_miles / epa_range) * battery_capacity
-
-        charge_rate_120 = 1.4  # kW for Level 1 (120V)
-        charge_rate_240 = 7.2  # kW for Level 2 (240V)
+        charge_rate_120 = Decimal("1.4")  # kW for Level 1 (120V)
+        charge_rate_240 = Decimal("7.2")  # kW for Level 2 (240V)
 
         charge_hours_120 = round(daily_kwh_needed / charge_rate_120, 2)
         charge_hours_240 = round(daily_kwh_needed / charge_rate_240, 2)

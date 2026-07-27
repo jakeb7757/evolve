@@ -113,6 +113,20 @@ To run the test suite, including the mocked API tests:
 ```bash
 python manage.py test evolve_site
 ```
+
+## Vehicle Catalog Synchronization
+
+Evolve synchronizes EPA vehicle records from FuelEconomy.gov into its own
+database:
+
+```bash
+python manage.py sync_fueleconomy --dry-run
+python manage.py sync_fueleconomy
+```
+
+Cloud Run job setup, scheduling, and deployment sequencing are documented in
+[`docs/fueleconomy-cloud-run.md`](docs/fueleconomy-cloud-run.md).
+
 ## Project Structure
 
 project_evolve/
@@ -138,4 +152,3 @@ project_evolve/
 │   ├── services.py         # NREL API client
 │   ├── tests.py            # Unit tests
 │   └── templates/
-

@@ -1,5 +1,4 @@
 from django import forms
-from .models import ElectricVehicle, Level2CalculatorSubmission
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
@@ -38,7 +37,7 @@ class FuelSavingsForm(forms.Form):
         label="Make",
         choices=[], # Populated by JavaScript
     )
-    model = forms.ChoiceField(
+    vehicle_id = forms.ChoiceField(
         label="Model",
         choices=[], # Populated by JavaScript
     )
@@ -54,7 +53,7 @@ class RegisterForm(UserCreationForm):
 class Level2ChargerForm(forms.Form):
     model_year = forms.ChoiceField(label="Year", choices=[])
     manufacturer = forms.ChoiceField(label="Make", choices=[])
-    model = forms.ChoiceField(label="Model", choices=[])
+    vehicle_id = forms.ChoiceField(label="Model", choices=[])
     daily_miles = forms.IntegerField(label="Average Daily Miles", min_value=0)
     charging_hours = forms.IntegerField(label="Available Charging Hours per Night", min_value=1, max_value=24)
     home_voltage = forms.ChoiceField(label="Home Outlet Voltage", choices=[('120', '120V'), ('240', '240V')])

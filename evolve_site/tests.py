@@ -1,11 +1,16 @@
 from django.test import TestCase
 from django.conf import settings
+from django.core.cache import cache
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.urls import reverse
 from django.contrib.auth.models import User
+from decimal import Decimal
+from io import StringIO
 from unittest.mock import patch, MagicMock
 from requests.exceptions import RequestException, Timeout
 from evolve_site.services import NRELClient
-from evolve_site.models import StationStatus
+from evolve_site.models import FuelEconomyVehicle, StationStatus
 
 
 class AuthFlowsTest(TestCase):
@@ -327,6 +332,7 @@ class StationListViewTest(TestCase):
 
     def setUp(self):
         """Set up test user and local station status."""
+        cache.clear()
         self.user = User.objects.create_user(username='testuser', password='testpass')
         self.station_id = '12345'
         
@@ -680,3 +686,161 @@ class CalculatorMethodologyTest(TestCase):
         self.assertContains(response, 'How We Calculate')
         self.assertContains(response, '120V')
         self.assertNotContains(response, '110V')
+
+
+class FuelEconomySyncTest(TestCase):
+    CSV_HEADER = (
+        "id,year,make,model,atvType,fuelType1,combE,range,drive,"
+        "charge120,charge240,createdOn,modifiedOn,basemodel\n"
+    )
+
+    def response_with_rows(self, *rows):
+        response = MagicMock()
+        response.content = (self.CSV_HEADER + "".join(rows)).encode()
+        response.raise_for_status.return_value = None
+        return response
+
+    @patch("evolve_site.management.commands.sync_fueleconomy.requests.get")
+    def test_sync_imports_updates_and_deactivates_vehicle_records(self, mock_get):
+        mock_get.return_value = self.response_with_rows(
+            "101,2025,Tesla,Model 3 Long Range,EV,Electricity,25,346,"
+            "All-Wheel Drive,40,8,Tue Jan 01 00:00:00 EST 2025,"
+            "Wed Jan 15 00:00:00 EST 2025,Model 3\n",
+            "102,2025,Tesla,Model Y,EV,Electricity,28,320,"
+            "Rear-Wheel Drive,45,9,2025-01-01,2025-01-15,Model Y\n",
+            "999,2025,Example,Gas Car,,Regular Gasoline,0,400,"
+            "Front-Wheel Drive,0,0,2025-01-01,2025-01-15,Gas Car\n",
+        )
+        output = StringIO()
+
+        call_command(
+            "sync_fueleconomy",
+            minimum_records=1,
+            stdout=output,
+        )
+
+        self.assertEqual(FuelEconomyVehicle.objects.count(), 2)
+        model_3 = FuelEconomyVehicle.objects.get(fueleconomy_id=101)
+        self.assertEqual(model_3.combined_kwh_per_100_miles, Decimal("25.00"))
+        self.assertEqual(model_3.epa_range_miles, 346)
+        self.assertEqual(str(model_3.source_modified_at), "2025-01-15")
+        self.assertIn("2 new", output.getvalue())
+
+        mock_get.return_value = self.response_with_rows(
+            "101,2025,Tesla,Model 3 Long Range,EV,Electricity,24,363,"
+            "All-Wheel Drive,40,8,2025-01-01,2025-02-01,Model 3\n",
+        )
+        output = StringIO()
+        call_command(
+            "sync_fueleconomy",
+            minimum_records=1,
+            stdout=output,
+        )
+
+        model_3.refresh_from_db()
+        self.assertEqual(model_3.combined_kwh_per_100_miles, Decimal("24.00"))
+        self.assertTrue(model_3.is_active)
+        self.assertFalse(
+            FuelEconomyVehicle.objects.get(fueleconomy_id=102).is_active
+        )
+        self.assertIn("1 updated", output.getvalue())
+        self.assertIn("1 deactivated", output.getvalue())
+
+    @patch("evolve_site.management.commands.sync_fueleconomy.requests.get")
+    def test_sync_rejects_suspiciously_small_download_before_writing(self, mock_get):
+        existing = FuelEconomyVehicle.objects.create(
+            fueleconomy_id=101,
+            model_year=2025,
+            manufacturer="Tesla",
+            model="Model 3",
+            combined_kwh_per_100_miles=Decimal("25.00"),
+        )
+        mock_get.return_value = self.response_with_rows()
+
+        with self.assertRaises(CommandError):
+            call_command("sync_fueleconomy", minimum_records=1)
+
+        existing.refresh_from_db()
+        self.assertTrue(existing.is_active)
+
+    @patch("evolve_site.management.commands.sync_fueleconomy.requests.get")
+    def test_sync_dry_run_does_not_write(self, mock_get):
+        mock_get.return_value = self.response_with_rows(
+            "101,2025,Tesla,Model 3,EV,Electricity,25,346,"
+            "All-Wheel Drive,40,8,2025-01-01,2025-01-15,Model 3\n",
+        )
+
+        call_command("sync_fueleconomy", minimum_records=1, dry_run=True)
+
+        self.assertFalse(FuelEconomyVehicle.objects.exists())
+
+
+class FuelEconomyCalculatorTest(TestCase):
+    def setUp(self):
+        self.vehicle = FuelEconomyVehicle.objects.create(
+            fueleconomy_id=50123,
+            model_year=2025,
+            manufacturer="Tesla",
+            model="Model 3 Long Range",
+            drivetrain="All-Wheel Drive",
+            epa_range_miles=346,
+            combined_kwh_per_100_miles=Decimal("25.00"),
+        )
+
+    def test_model_api_returns_unique_epa_id_and_label(self):
+        response = self.client.get(
+            reverse("evolve_site:api_get_models"),
+            {"year": "2025", "manufacturer": "Tesla"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()["models"],
+            [{"id": 50123, "label": "Model 3 Long Range (All-Wheel Drive)"}],
+        )
+
+    def test_fuel_savings_uses_epa_combined_energy_consumption(self):
+        response = self.client.post(
+            reverse("evolve_site:calculator"),
+            {
+                "mpg": "25",
+                "gas_price": "3.50",
+                "annual_miles": "10000",
+                "electricity_cost": "0.15",
+                "model_year": "2025",
+                "manufacturer": "Tesla",
+                "vehicle_id": str(self.vehicle.fueleconomy_id),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.context["results"]["annual_gas_cost"],
+            Decimal("1400.00"),
+        )
+        self.assertEqual(
+            response.context["results"]["annual_electricity_cost"],
+            Decimal("375.00"),
+        )
+        self.assertEqual(
+            response.context["results"]["annual_savings"],
+            Decimal("1025.00"),
+        )
+
+    def test_level2_calculator_uses_epa_combined_energy_consumption(self):
+        response = self.client.post(
+            reverse("evolve_site:level2_calculator"),
+            {
+                "model_year": "2025",
+                "manufacturer": "Tesla",
+                "vehicle_id": str(self.vehicle.fueleconomy_id),
+                "daily_miles": "40",
+                "charging_hours": "6",
+                "home_voltage": "120",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["charge_hours_120"], Decimal("7.14"))
+        self.assertEqual(response.context["charge_hours_240"], Decimal("1.39"))
+        self.assertContains(response, "Level 2 charger (240V) recommended")

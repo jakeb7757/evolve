@@ -81,15 +81,17 @@
                         {{ form.manufacturer.errors }}
                     </div>
                     <div>
-                        <label for="{{ form.model.id_for_label }}" class="form-label">{{ form.model.label }}</label>
-                        <select name="model" class="form-select" id="{{ form.model.id_for_label }}"
-                                data-current="{{ form.model.value|default:'' }}" required {% if not form.model.value %}disabled{% endif %}>
+                        <label for="{{ form.vehicle_id.id_for_label }}" class="form-label">{{ form.vehicle_id.label }}</label>
+                        <select name="vehicle_id" class="form-select" id="{{ form.vehicle_id.id_for_label }}"
+                                data-current="{{ form.vehicle_id.value|default:'' }}" required {% if not form.vehicle_id.value %}disabled{% endif %}>
                             <option value="">Choose a model</option>
-                            {% if form.model.value %}
-                            <option value="{{ form.model.value }}" selected>{{ form.model.value }}</option>
-                            {% endif %}
+                            {% for value, label in form.vehicle_id.field.choices %}
+                                {% if value %}
+                                <option value="{{ value }}" {% if form.vehicle_id.value == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                                {% endif %}
+                            {% endfor %}
                         </select>
-                        {{ form.model.errors }}
+                        {{ form.vehicle_id.errors }}
                     </div>
                 </div>
             </section>
@@ -115,9 +117,9 @@
                     <div class="accordion-body">
                         <div class="formula-card mb-3">
                             <strong>Gas cost</strong> = (annual miles ÷ MPG) × gas price<br>
-                            <strong>Electric cost</strong> = (annual miles × EV Wh/mile ÷ 1,000) × electricity rate
+                            <strong>Electric cost</strong> = (annual miles × EPA kWh/100 mi ÷ 100) × electricity rate
                         </div>
-                        <p><strong>Vehicle data:</strong> EV range and battery capacity come from manufacturer data. Efficiency is calculated from battery capacity and EPA-rated range.</p>
+                        <p><strong>Vehicle data:</strong> Model coverage and combined electricity consumption come from FuelEconomy.gov, administered by the U.S. Department of Energy and EPA.</p>
                         <p class="mb-0"><strong>Keep in mind:</strong> This estimate assumes home charging at the rate you enter. Public charging, seasonal efficiency, and time-of-use pricing can change actual costs.</p>
                     </div>
                 </div>
@@ -185,7 +187,7 @@
 $(function() {
     const yearSelect = $('#id_model_year');
     const makeSelect = $('#id_manufacturer');
-    const modelSelect = $('#id_model');
+    const modelSelect = $('#id_vehicle_id');
 
     [yearSelect, makeSelect, modelSelect].forEach(function(select) {
         select.select2({
@@ -200,7 +202,9 @@ $(function() {
     function setOptions(select, options, placeholder) {
         select.empty().append(new Option(placeholder, ''));
         options.forEach(function(option) {
-            select.append(new Option(option, option));
+            const value = typeof option === 'string' ? option : option.id;
+            const label = typeof option === 'string' ? option : option.label;
+            select.append(new Option(label, value));
         });
         select.prop('disabled', false).trigger('change.select2');
     }

@@ -43,14 +43,14 @@
                         {{ form.manufacturer.errors }}
                     </div>
                     <div>
-                        <label for="id_model">{{ form.model.label }}</label>
-                        <select name="model" id="id_model" class="form-select"
-                                required {% if not form.model.value %}disabled{% endif %}>
-                            {% for value, label in form.model.field.choices %}
-                            <option value="{{ value }}" {% if form.model.value == value %}selected{% endif %}>{{ label }}</option>
+                        <label for="id_vehicle_id">{{ form.vehicle_id.label }}</label>
+                        <select name="vehicle_id" id="id_vehicle_id" class="form-select"
+                                required {% if not form.vehicle_id.value %}disabled{% endif %}>
+                            {% for value, label in form.vehicle_id.field.choices %}
+                            <option value="{{ value }}" {% if form.vehicle_id.value == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
                             {% endfor %}
                         </select>
-                        {{ form.model.errors }}
+                        {{ form.vehicle_id.errors }}
                     </div>
                 </div>
             </section>
@@ -108,7 +108,7 @@
                      aria-labelledby="methodologyHeading" data-bs-parent="#methodologyAccordion">
                     <div class="accordion-body">
                         <div class="formula-card mb-3">
-                            <strong>Daily energy</strong> = (daily miles ÷ EPA range) × battery capacity<br>
+                            <strong>Daily energy</strong> = daily miles × EPA kWh/100 mi ÷ 100<br>
                             <strong>Charge time</strong> = daily energy ÷ charging rate
                         </div>
                         <p><strong>Charging rates:</strong> We estimate 1.4 kW for a standard 120V outlet and 7.2 kW for a typical Level 2 setup.</p>
@@ -143,13 +143,15 @@
             {% if selected_ev %}
             <div class="result-grid">
                 <div class="result-stat">
-                    <span>Battery</span>
-                    <strong>{{ selected_ev.battery_capacity_kwh }} kWh</strong>
+                    <span>EPA efficiency</span>
+                    <strong>{{ selected_ev.combined_kwh_per_100_miles }} kWh/100 mi</strong>
                 </div>
+                {% if selected_ev.epa_range_miles %}
                 <div class="result-stat">
                     <span>EPA range</span>
                     <strong>{{ selected_ev.epa_range_miles }} mi</strong>
                 </div>
+                {% endif %}
             </div>
             {% endif %}
         </div>
@@ -184,7 +186,7 @@
 $(function() {
     const yearSelect = $('#id_model_year');
     const makeSelect = $('#id_manufacturer');
-    const modelSelect = $('#id_model');
+    const modelSelect = $('#id_vehicle_id');
 
     [yearSelect, makeSelect, modelSelect].forEach(function(select) {
         select.select2({
@@ -200,7 +202,9 @@ $(function() {
     function setOptions(select, options, placeholder) {
         select.empty().append(new Option(placeholder, ''));
         options.forEach(function(option) {
-            select.append(new Option(option, option));
+            const value = typeof option === 'string' ? option : option.id;
+            const label = typeof option === 'string' ? option : option.label;
+            select.append(new Option(label, value));
         });
         select.prop('disabled', false).trigger('change.select2');
     }
