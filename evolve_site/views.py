@@ -14,6 +14,25 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.vary import vary_on_cookie
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.views import View
+from django.db import DatabaseError
+from django.conf import settings
+
+
+def get_vehicle_year_choices():
+    """
+    Return available EV model years without taking the page down when the
+    externally managed vehicle table has not been provisioned yet.
+    """
+    try:
+        years = (
+            ElectricVehicle.objects
+            .values_list('model_year', flat=True)
+            .distinct()
+            .order_by('-model_year')
+        )
+        return [('', '--- Choose a Year ---')] + [(year, year) for year in years]
+    except DatabaseError:
+        return [('', '--- Vehicle data unavailable ---')]
 
 def get_manufacturers(request):
     """
@@ -22,12 +41,15 @@ def get_manufacturers(request):
     year = request.GET.get('year')
     manufacturers = []
     if year:
-        manufacturers = list(
-            ElectricVehicle.objects.filter(model_year=year)
-            .values_list('manufacturer', flat=True)
-            .distinct()
-            .order_by('manufacturer')
-        )
+        try:
+            manufacturers = list(
+                ElectricVehicle.objects.filter(model_year=year)
+                .values_list('manufacturer', flat=True)
+                .distinct()
+                .order_by('manufacturer')
+            )
+        except DatabaseError:
+            manufacturers = []
     return JsonResponse({'manufacturers': manufacturers})
 
 def get_models(request):
@@ -38,12 +60,15 @@ def get_models(request):
     manufacturer = request.GET.get('manufacturer')
     models = []
     if year and manufacturer:
-        models = list(
-            ElectricVehicle.objects.filter(model_year=year, manufacturer=manufacturer)
-            .values_list('model', flat=True)
-            .distinct()
-            .order_by('model')
-        )
+        try:
+            models = list(
+                ElectricVehicle.objects.filter(model_year=year, manufacturer=manufacturer)
+                .values_list('model', flat=True)
+                .distinct()
+                .order_by('model')
+            )
+        except DatabaseError:
+            models = []
     return JsonResponse({'models': models})
 
 def fuel_savings_calculator(request):
@@ -54,9 +79,7 @@ def fuel_savings_calculator(request):
     results = {}
     
     # Get distinct years for the initial form dropdown
-    year_choices = [('', '--- Choose a Year ---')] + [
-        (year, year) for year in ElectricVehicle.objects.values_list('model_year', flat=True).distinct().order_by('-model_year')
-    ]
+    year_choices = get_vehicle_year_choices()
 
     if request.method == 'POST':
         form = FuelSavingsForm(request.POST)
@@ -133,9 +156,7 @@ class Level2ChargerCalculatorView(FormView):
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        year_choices = [('', '--- Choose a Year ---')] + [
-            (year, year) for year in ElectricVehicle.objects.values_list('model_year', flat=True).distinct().order_by('-model_year')
-        ]
+        year_choices = get_vehicle_year_choices()
         form.fields['model_year'].choices = year_choices
 
         year = self.request.POST.get('model_year') or self.request.GET.get('model_year')
@@ -205,8 +226,15 @@ def calculator_submissions_report(request):
         'submissions': submissions
     })
 
-@method_decorator(cache_page(60 * 15), name='dispatch')
-@method_decorator(vary_on_cookie, name='dispatch')
+def cache_station_view(view_class):
+    """Cache production station searches while keeping local feedback live."""
+    if settings.DEBUG:
+        return view_class
+    decorated = method_decorator(vary_on_cookie, name='dispatch')(view_class)
+    return method_decorator(cache_page(60 * 15), name='dispatch')(decorated)
+
+
+@cache_station_view
 class StationListView(TemplateView):
     """
     Displays a list of charging stations with pagination.
@@ -272,6 +300,7 @@ class StationListView(TemplateView):
         context['form'] = form
         context['page_obj'] = page_obj
         context['paginator'] = paginator
+        context['stations'] = stations
         context['error_message'] = error_message
         return context
 

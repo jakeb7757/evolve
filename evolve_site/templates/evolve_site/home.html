@@ -1,162 +1,149 @@
 {% extends 'evolve_site/base.html' %}
 
-{% block title %}Home - Evolve{% endblock %}
-
-{% block body_class %}h-100{% endblock %}
-
-{% block extra_head %}
-<style>
-    html,
-    body {
-        height: 100%;
-    }
-
-    body.h-100 {
-        background: linear-gradient(135deg, var(--evolve-dark) 0%, var(--evolve-primary) 50%, var(--evolve-accent) 100%) !important;
-        background-attachment: fixed;
-        color: var(--evolve-light) !important;
-    }
-
-    .cover-container {
-        max-width: 50em;
-    }
-
-    .lead {
-        font-size: 1.25rem;
-        font-weight: 300;
-    }
-
-    .btn-outline-light:hover {
-        background-color: var(--evolve-highlight);
-        border-color: var(--evolve-highlight);
-    }
-
-    .display-3 {
-        color: #ffffff !important;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    }
-
-    .cover-container header h3,
-    .cover-container header .nav-link {
-        color: #ffffff !important;
-    }
-
-    .nav-masthead .nav-link {
-        color: rgba(255, 255, 255, .75) !important;
-        border-bottom: .25rem solid transparent;
-    }
-
-    .nav-masthead .nav-link:hover,
-    .nav-masthead .nav-link:focus {
-        border-bottom-color: rgba(255, 255, 255, .25);
-        color: #ffffff !important;
-    }
-
-    .nav-masthead .nav-link+.nav-link {
-        margin-left: 1rem;
-    }
-
-    .nav-masthead .active {
-        color: #ffffff !important;
-        border-bottom-color: #ffffff !important;
-    }
-
-    @media (min-width: 768px) {
-        .navbar-center {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            margin: 0 !important;
-            width: max-content;
-            z-index: 10;
-        }
-    }
-</style>
-{% endblock %}
-
-{% block navbar %}
-<!-- Override navbar for cover page -->
-{% endblock %}
+{% block title %}Evolve — Make your next mile electric{% endblock %}
+{% block body_class %}home-page{% endblock %}
 
 {% block main_wrapper %}
-<div class="d-flex h-100 text-center text-white">
-    <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
-        <header class="mb-auto">
-            <nav class="navbar navbar-expand-md navbar-dark bg-transparent w-100 p-0">
-                <div class="container-fluid px-0 position-relative">
-                    <a class="navbar-brand mb-0 h3 fw-bold" href="{% url 'evolve_site:home' %}">
-                        <i class="bi bi-ev-station-fill"></i> Evolve
+<main id="main-content">
+    <section class="home-hero">
+        <div class="container hero-grid">
+            <div class="hero-copy" data-reveal>
+                <p class="eyebrow">Your EV decision toolkit</p>
+                <h1>Make your next mile <em>electric.</em></h1>
+                <p>
+                    Cut through the guesswork. Compare real driving costs, choose the right home charging setup,
+                    and find fast chargers near you—all in one place.
+                </p>
+                <div class="hero-actions">
+                    <a class="btn btn-lime" href="{% url 'evolve_site:calculator' %}">
+                        Calculate my savings <i class="bi bi-arrow-up-right ms-1"></i>
                     </a>
-                    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false"
-                        aria-label="Toggle navigation">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
-                    <div class="collapse navbar-collapse" id="navbarCollapse">
-                        <nav
-                            class="nav nav-masthead navbar-nav navbar-center mx-auto mb-2 mb-md-0 justify-content-center">
-                            <a class="nav-link fw-bold py-1 px-0 active" href="{% url 'evolve_site:home' %}">Home</a>
-                            <a class="nav-link fw-bold py-1 px-0" href="{% url 'evolve_site:calculator' %}">Savings</a>
-                            <a class="nav-link fw-bold py-1 px-0" href="{% url 'evolve_site:level2_calculator' %}">Level
-                                2</a>
-                            <a class="nav-link fw-bold py-1 px-0"
-                                href="{% url 'evolve_site:station_list' %}">Stations</a>
-                        </nav>
-                        <nav class="nav nav-masthead navbar-nav ms-auto justify-content-end">
-                            {% if user.is_authenticated %}
-                            <a class="nav-link fw-bold py-1 px-0" href="{% url 'evolve_site:logout' %}">Logout</a>
-                            {% else %}
-                            <a class="nav-link fw-bold py-1 px-0" href="{% url 'evolve_site:login' %}">Login</a>
-                            {% endif %}
-                        </nav>
+                    <a class="btn btn-ghost" href="{% url 'evolve_site:station_list' %}">
+                        Find a charger
+                    </a>
+                </div>
+            </div>
+
+            <div class="hero-visual" aria-label="Electric vehicle range dashboard illustration" data-reveal>
+                <div class="dashboard-card">
+                    <div class="dashboard-screen">
+                        <div class="dashboard-top">
+                            <span class="dashboard-label">Your EV snapshot</span>
+                            <span class="live-pill">Ready to go</span>
+                        </div>
+                        <div class="range-display">
+                            <strong>248</strong><span>miles</span>
+                        </div>
+                        <span class="dashboard-label">Estimated range</span>
+                        <div class="charge-track" aria-hidden="true"><span></span></div>
+                        <div class="dashboard-metrics">
+                            <div class="dashboard-metric">
+                                <i class="bi bi-battery-charging"></i>
+                                <span>Charge</span>
+                                <strong>78%</strong>
+                            </div>
+                            <div class="dashboard-metric">
+                                <i class="bi bi-lightning"></i>
+                                <span>Home rate</span>
+                                <strong>$0.16/kWh</strong>
+                            </div>
+                            <div class="dashboard-metric">
+                                <i class="bi bi-tree"></i>
+                                <span>Mode</span>
+                                <strong>Eco</strong>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </nav>
-        </header>
-
-        <main class="px-3">
-            <h1 class="display-3 fw-bold mb-3">Drive the Future</h1>
-            <p class="lead">
-                Your comprehensive hub for electric vehicle tools and information.
-                Calculate savings, find charging stations, and make informed decisions about your EV journey.
-            </p>
-            <p class="lead">
-                <a href="{% url 'evolve_site:calculator' %}"
-                    class="btn btn-lg btn-outline-light fw-bold border-white me-2 mb-2">
-                    <i class="bi bi-calculator"></i> Savings Calculator
-                </a>
-                <a href="{% url 'evolve_site:level2_calculator' %}"
-                    class="btn btn-lg btn-outline-light fw-bold border-white me-2 mb-2">
-                    <i class="bi bi-plug"></i> Level 2 Calculator
-                </a>
-                <a href="{% url 'evolve_site:station_list' %}"
-                    class="btn btn-lg btn-outline-light fw-bold border-white mb-2">
-                    <i class="bi bi-geo-alt-fill"></i> Find Stations
-                </a>
-            </p>
-
-            {% if user.is_authenticated %}
-            <div class="alert alert-light mt-4 text-start" role="alert">
-                <h5 class="alert-heading text-dark">
-                    <i class="bi bi-person-check-fill"></i> Welcome back, {{ user.username }}!
-                </h5>
-                <p class="mb-0 text-dark">You can submit status updates for charging stations.</p>
+                <div class="floating-chip chip-station">
+                    <i class="bi bi-geo-alt-fill"></i>
+                    Fast charger · 2.4 mi
+                </div>
+                <div class="floating-chip chip-savings">
+                    <i class="bi bi-graph-up-arrow"></i>
+                    Save about $94/mo
+                </div>
             </div>
-            {% else %}
-            <div class="mt-4">
-                <p class="text-white-50">
-                    <a href="{% url 'evolve_site:register' %}" class="text-white text-decoration-none fw-bold">Create an
-                        account</a>
-                    to report station status and more.
-                </p>
-            </div>
-            {% endif %}
-        </main>
+        </div>
+    </section>
 
-        <footer class="mt-auto text-white-50">
-            <p>Evolve &copy; 2025 | Empowering the electric vehicle transition</p>
-        </footer>
-    </div>
-</div>
+    <section class="home-trust" aria-label="Evolve highlights">
+        <div class="container trust-row">
+            <div class="trust-item">
+                <strong>One clear starting point</strong>
+                <span>Built for EV-curious drivers</span>
+            </div>
+            <div class="trust-item">
+                <strong>Real numbers</strong>
+                <span>Personalized to your commute</span>
+            </div>
+            <div class="trust-item">
+                <strong>EPA-based</strong>
+                <span>Vehicle range and efficiency data</span>
+            </div>
+            <div class="trust-item">
+                <strong>Live locations</strong>
+                <span>DC fast charging station search</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="tools-section">
+        <div class="container">
+            <div class="section-heading" data-reveal>
+                <div>
+                    <p class="eyebrow">Three practical tools</p>
+                    <h2>From “what if?” to ready to drive.</h2>
+                </div>
+                <p>Start wherever your biggest question is. Each tool turns a fuzzy EV decision into a useful next step.</p>
+            </div>
+
+            <div class="tool-grid">
+                <a class="tool-card" href="{% url 'evolve_site:calculator' %}" data-reveal>
+                    <span class="tool-number">01 / SAVINGS</span>
+                    <span class="tool-icon"><i class="bi bi-graph-up-arrow"></i></span>
+                    <h3>See what switching could save.</h3>
+                    <p>Compare your current fuel costs with the electricity cost of a specific EV.</p>
+                </a>
+                <a class="tool-card" href="{% url 'evolve_site:level2_calculator' %}" data-reveal>
+                    <span class="tool-number">02 / CHARGING</span>
+                    <span class="tool-icon"><i class="bi bi-house-bolt"></i></span>
+                    <h3>Choose your home setup.</h3>
+                    <p>Find out whether a standard outlet can keep up with your daily driving.</p>
+                </a>
+                <a class="tool-card" href="{% url 'evolve_site:station_list' %}" data-reveal>
+                    <span class="tool-number">03 / STATIONS</span>
+                    <span class="tool-icon"><i class="bi bi-geo-alt"></i></span>
+                    <h3>Find power on the road.</h3>
+                    <p>Search nearby DC fast chargers, compare connectors, and check community-reported status.</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="container">
+        {% if user.is_authenticated %}
+        <div class="account-banner" data-reveal>
+            <div>
+                <p class="eyebrow mb-2">You’re signed in</p>
+                <h2>Welcome, {{ user.username }}!</h2>
+                <p>You can now help other drivers by reporting charging-station status.</p>
+            </div>
+            <a class="btn btn-primary" href="{% url 'evolve_site:station_list' %}">Explore stations</a>
+        </div>
+        {% else %}
+        <div class="account-banner" data-reveal>
+            <div>
+                <p class="eyebrow mb-2">Make Evolve better together</p>
+                <h2>Know a charger’s status? Share it.</h2>
+                <p>Create an account to report whether a station is working, busy, or down.</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-primary" href="{% url 'evolve_site:register' %}">Register</a>
+                <a class="btn btn-outline-dark" href="{% url 'evolve_site:login' %}">Login</a>
+            </div>
+        </div>
+        {% endif %}
+    </section>
+</main>
 {% endblock %}

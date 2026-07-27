@@ -1,12 +1,40 @@
 {% extends 'evolve_site/base.html' %}
 
-{% block title %}Login - Evolve{% endblock %}
+{% block title %}Login — Evolve{% endblock %}
+{% block body_class %}auth-page{% endblock %}
 
-{% block content %}
-    <h2>Login</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">Login</button>
-    </form>
+{% block main_wrapper %}
+<main id="main-content" class="auth-shell">
+    <section class="auth-story">
+        <p class="eyebrow">Welcome back</p>
+        <h1>Pick up where you left off.</h1>
+        <p>Sign in to report charger status and help make the road a little easier for the next EV driver.</p>
+    </section>
+    <section class="auth-form-wrap">
+        <div class="auth-card">
+            <p class="eyebrow">Your account</p>
+            <h2>Login</h2>
+            <p>Good to see you again.</p>
+            <form method="post">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+                <label for="id_username">Username</label>
+                <input type="text" name="username" id="id_username" class="form-control"
+                       value="{{ form.username.value|default:'' }}" autocomplete="username" autofocus required>
+                {{ form.username.errors }}
+
+                <label for="id_password">Password</label>
+                <input type="password" name="password" id="id_password" class="form-control"
+                       autocomplete="current-password" required>
+                {{ form.password.errors }}
+
+                {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+                <button type="submit" class="btn btn-lime">Login <i class="bi bi-arrow-right ms-1"></i></button>
+            </form>
+            <p class="auth-switch">New here? <a href="{% url 'evolve_site:register' %}">Create an account</a></p>
+        </div>
+    </section>
+</main>
 {% endblock %}

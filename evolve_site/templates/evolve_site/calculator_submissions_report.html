@@ -1,35 +1,43 @@
 {% extends 'evolve_site/base.html' %}
 
-{% block title %}Level 2 Calculator Submissions Report{% endblock %}
+{% block title %}Charging Submissions Report — Evolve{% endblock %}
 
 {% block content %}
-  <h2>Level 2 Calculator Submissions Report</h2>
-  <table class="table table-striped">
-    <thead>
-      <tr>
-        <th>User</th>
-        <th>EV Model</th>
-        <th>Battery Capacity (kWh)</th>
-        <th>Daily Miles</th>
-        <th>Charging Hours</th>
-        <th>Home Voltage</th>
-        <th>Recommendation</th>
-        <th>Submitted At</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for sub in submissions %}
-      <tr>
-        <td>{{ sub.user }}</td>
-        <td>{{ sub.ev_model }}</td>
-        <td>{{ sub.battery_capacity_kwh }}</td>
-        <td>{{ sub.daily_miles }}</td>
-        <td>{{ sub.charging_hours }}</td>
-        <td>{{ sub.home_voltage }}</td>
-        <td>{{ sub.recommendation }}</td>
-        <td>{{ sub.submitted_at }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<header class="page-heading">
+    <p class="page-kicker">Staff view</p>
+    <h1>Charging recommendations.</h1>
+    <p>A complete view of submitted Level 2 calculator results.</p>
+</header>
+<div class="panel report-panel">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>EV model</th>
+                <th>Battery</th>
+                <th>Daily miles</th>
+                <th>Charge window</th>
+                <th>Voltage</th>
+                <th>Recommendation</th>
+                <th>Submitted</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sub in submissions %}
+            <tr>
+                <td>{{ sub.user|default:"Guest" }}</td>
+                <td>{{ sub.ev_model }}</td>
+                <td>{{ sub.battery_capacity_kwh }} kWh</td>
+                <td>{{ sub.daily_miles }} mi</td>
+                <td>{{ sub.charging_hours }} hrs</td>
+                <td>{{ sub.home_voltage }}V</td>
+                <td>{{ sub.recommendation }}</td>
+                <td>{{ sub.submitted_at|date:"M j, Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="text-center text-muted py-5">No submissions yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}

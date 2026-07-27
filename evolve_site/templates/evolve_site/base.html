@@ -1,141 +1,92 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en" class="h-100">
-
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Evolve{% endblock %}</title>
+    <meta name="theme-color" content="#111815">
+    <meta name="description" content="Practical tools for a smarter move to electric driving.">
+    <title>{% block title %}Evolve — Drive electric with confidence{% endblock %}</title>
+    <script>document.documentElement.classList.add('js');</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
-        rel="stylesheet" />
-    <style>
-        :root {
-            --evolve-dark: #1a1a2e;
-            --evolve-primary: #16213e;
-            --evolve-accent: #0f3460;
-            --evolve-highlight: #e94560;
-            --evolve-light: #f1f1f1;
-        }
-
-        body {
-            background-color: var(--evolve-light);
-        }
-
-        .navbar {
-            background: linear-gradient(135deg, var(--evolve-dark) 0%, var(--evolve-primary) 100%) !important;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .navbar-brand,
-        .nav-link {
-            color: var(--evolve-light) !important;
-            font-weight: 500;
-        }
-
-        .nav-link:hover {
-            color: var(--evolve-highlight) !important;
-        }
-
-        .btn-primary {
-            background-color: var(--evolve-accent);
-            border-color: var(--evolve-accent);
-        }
-
-        .btn-primary:hover {
-            background-color: var(--evolve-highlight);
-            border-color: var(--evolve-highlight);
-        }
-
-        .card {
-            border: none;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s;
-        }
-
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .badge {
-            font-weight: 500;
-        }
-
-        h1,
-        h2,
-        h3,
-        h4,
-        h5 {
-            color: var(--evolve-dark);
-        }
-
-        .select2-container--bootstrap-5 .select2-selection {
-            min-height: 38px;
-        }
-    </style>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'evolve_site/css/evolve.css' %}">
     {% block extra_head %}{% endblock %}
 </head>
-
 <body class="{% block body_class %}{% endblock %}">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
     {% block navbar %}
-    <nav class="navbar navbar-expand-lg navbar-dark">
+    <nav class="navbar navbar-expand-lg site-nav" aria-label="Primary navigation">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="{% url 'evolve_site:home' %}">
-                <i class="bi bi-ev-station-fill"></i> Evolve
+            <a class="navbar-brand brand-mark" href="{% url 'evolve_site:home' %}" aria-label="Evolve home">
+                <span class="brand-symbol" aria-hidden="true"><i class="bi bi-lightning-charge-fill"></i></span>
+                <span>Evolve</span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#primaryNav"
+                    aria-controls="primaryNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
+            <div class="collapse navbar-collapse" id="primaryNav">
+                <ul class="navbar-nav nav-pills-custom mx-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'evolve_site:calculator' %}">Savings Calculator</a>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'calculator' %}active{% endif %}"
+                           href="{% url 'evolve_site:calculator' %}">Savings</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'evolve_site:level2_calculator' %}">Level 2 Calculator</a>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'level2_calculator' %}active{% endif %}"
+                           href="{% url 'evolve_site:level2_calculator' %}">Home charging</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'evolve_site:station_list' %}">Find Stations</a>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'station_list' %}active{% endif %}"
+                           href="{% url 'evolve_site:station_list' %}">Find stations</a>
                     </li>
                 </ul>
-                <ul class="navbar-nav ms-auto">
+                <div class="nav-account">
                     {% if user.is_authenticated %}
-                    <li class="nav-item">
-                        <span class="nav-link"><i class="bi bi-person-circle"></i> {{ user.username }}</span>
-                    </li>
-                    <li class="nav-item">
-                        <form action="{% url 'evolve_site:logout' %}" method="post" class="d-inline">
-                            {% csrf_token %}
-                            <button type="submit" class="nav-link btn btn-link">Logout</button>
-                        </form>
-                    </li>
+                    <span class="user-chip"><i class="bi bi-person"></i>{{ user.username }}</span>
+                    <form action="{% url 'evolve_site:logout' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-nav">Logout</button>
+                    </form>
                     {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'evolve_site:login' %}">Login</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'evolve_site:register' %}">Register</a>
-                    </li>
+                    <a class="nav-login" href="{% url 'evolve_site:login' %}">Login</a>
+                    <a class="btn btn-nav" href="{% url 'evolve_site:register' %}">Get started</a>
                     {% endif %}
-                </ul>
+                </div>
             </div>
         </div>
     </nav>
     {% endblock %}
 
     {% block main_wrapper %}
-    <main class="{% block main_class %}container mt-4{% endblock %}">
-        {% block content %}
-        {% endblock %}
+    <main id="main-content" class="{% block main_class %}container page-main{% endblock %}">
+        {% block content %}{% endblock %}
     </main>
+    {% endblock %}
+
+    {% block footer %}
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <a class="brand-mark footer-brand" href="{% url 'evolve_site:home' %}">
+                <span class="brand-symbol" aria-hidden="true"><i class="bi bi-lightning-charge-fill"></i></span>
+                <span>Evolve</span>
+            </a>
+            <p>Practical tools for the road ahead.</p>
+            <span class="footer-note">Built with care for curious drivers.</span>
+        </div>
+    </footer>
     {% endblock %}
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="{% static 'evolve_site/js/evolve.js' %}"></script>
     {% block extra_scripts %}{% endblock %}
 </body>
-
 </html>
