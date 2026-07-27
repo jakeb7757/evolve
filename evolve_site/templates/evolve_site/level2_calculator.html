@@ -75,16 +75,6 @@
                         <div class="form-text">How long the car is normally parked and plugged in.</div>
                         {{ form.charging_hours.errors }}
                     </div>
-                    <div>
-                        <label for="id_home_voltage">{{ form.home_voltage.label }}</label>
-                        <select name="home_voltage" id="id_home_voltage" class="form-select" required>
-                            {% for value, label in form.home_voltage.field.choices %}
-                            <option value="{{ value }}" {% if form.home_voltage.value == value %}selected{% endif %}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text">120V is a standard wall outlet; 240V is a dedicated circuit.</div>
-                        {{ form.home_voltage.errors }}
-                    </div>
                 </div>
             </section>
 
@@ -197,8 +187,6 @@ $(function() {
                          select.attr('id') === 'id_manufacturer' ? 'Choose a make' : 'Choose a model'
         });
     });
-    $('#id_home_voltage').select2({ theme: 'bootstrap-5', width: '100%', minimumResultsForSearch: -1 });
-
     function setOptions(select, options, placeholder) {
         select.empty().append(new Option(placeholder, ''));
         options.forEach(function(option) {

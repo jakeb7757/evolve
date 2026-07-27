@@ -686,6 +686,8 @@ class CalculatorMethodologyTest(TestCase):
         self.assertContains(response, 'How We Calculate')
         self.assertContains(response, '120V')
         self.assertNotContains(response, '110V')
+        self.assertNotContains(response, 'Home Outlet Voltage')
+        self.assertNotContains(response, 'id_home_voltage')
 
 
 class FuelEconomySyncTest(TestCase):
@@ -837,7 +839,6 @@ class FuelEconomyCalculatorTest(TestCase):
                 "vehicle_id": str(self.vehicle.fueleconomy_id),
                 "daily_miles": "40",
                 "charging_hours": "6",
-                "home_voltage": "120",
             },
         )
 
