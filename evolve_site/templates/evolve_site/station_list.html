@@ -29,7 +29,13 @@
         </div>
         <div id="city-field" style="display: none;">
             <label for="id_city_state" class="form-label">Where are you charging?</label>
-            {{ form.city_state }}
+            <select name="city_state" id="id_city_state" class="form-select"
+                    data-current="{{ form.city_state.value|default:'' }}">
+                <option value=""></option>
+                {% if form.city_state.value %}
+                <option value="{{ form.city_state.value }}" selected>{{ form.city_state.value }}</option>
+                {% endif %}
+            </select>
             {{ form.city_state.errors }}
         </div>
         <button type="submit" class="btn btn-primary" id="search-btn">
@@ -246,11 +252,34 @@
 <script>
 $(function() {
     $.getJSON("{% static 'evolve_site/data/us_cities.json' %}", function(cityData) {
-        $('#id_city_state').select2({
+        const citySelect = $('#id_city_state');
+        const currentCity = citySelect.attr('data-current');
+        const suggestions = cityData.map(function(city) {
+            return { id: city.value, text: city.label };
+        });
+
+        if (currentCity && !suggestions.some(city => city.id === currentCity)) {
+            suggestions.unshift({ id: currentCity, text: currentCity });
+        }
+
+        citySelect.select2({
             theme: 'bootstrap-5',
             placeholder: 'Start typing a city…',
             allowClear: true,
-            data: cityData,
+            data: suggestions,
+            tags: true,
+            width: '100%',
+            minimumInputLength: 1
+        });
+
+        if (currentCity) {
+            citySelect.val(currentCity).trigger('change.select2');
+        }
+    }).fail(function() {
+        const citySelect = $('#id_city_state');
+        citySelect.select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Type a city and state…',
             tags: true,
             width: '100%'
         });

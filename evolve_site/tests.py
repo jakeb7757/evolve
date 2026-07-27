@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.conf import settings
 from django.urls import reverse
 from django.contrib.auth.models import User
 from unittest.mock import patch, MagicMock
@@ -146,6 +147,12 @@ class NRELClientTest(TestCase):
                     'ev_network': 'Electrify America',
                     'ev_connector_types': ['J1772COMBO', 'CHADEMO'],
                     'distance': 3.2
+                },
+                {
+                    'id': 24680,
+                    'station_name': 'Incomplete Station Record',
+                    'ev_dc_fast_num': None,
+                    'ev_connector_types': None,
                 }
             ]
         }
@@ -158,6 +165,16 @@ class NRELClientTest(TestCase):
         self.assertEqual(len(stations), 2)
         self.assertEqual(stations[0]['station_name'], 'Test Supercharger')
         self.assertEqual(stations[1]['station_name'], 'Test EA Station')
+        request_kwargs = mock_get.call_args.kwargs
+        self.assertNotIn('api_key', request_kwargs['params'])
+        self.assertEqual(
+            request_kwargs['headers']['X-Api-Key'],
+            settings.NREL_API_KEY
+        )
+        self.assertEqual(
+            NRELClient.BASE_URL,
+            'https://developer.nlr.gov/api/alt-fuel-stations/v1/nearest.json'
+        )
         
         # Verify geocoding was called
         mock_geocode.assert_called_once_with('79101')

@@ -7,7 +7,7 @@ from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 logger = logging.getLogger(__name__)
 
 class NRELClient:
-    BASE_URL = "https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json"
+    BASE_URL = "https://developer.nlr.gov/api/alt-fuel-stations/v1/nearest.json"
 
     @staticmethod
     def geocode_zip(zip_code):
@@ -100,12 +100,10 @@ class NRELClient:
             return []
 
         params = {
-            'api_key': api_key,
             'latitude': latitude,
             'longitude': longitude,
             'fuel_type': 'ELEC',
             'ev_connector_type': 'CHADEMO,J1772COMBO,TESLA',  # DC Fast Charger types
-            'ev_charging_level': 'dc_fast',  # Only DC Fast Chargers
             'limit': 50,
             'status': 'E',
             'access': 'public',
@@ -114,7 +112,12 @@ class NRELClient:
 
         try:
             logger.info(f"Requesting NREL API for DC Fast Chargers at coordinates: ({latitude}, {longitude})")
-            response = requests.get(NRELClient.BASE_URL, params=params, timeout=5)
+            response = requests.get(
+                NRELClient.BASE_URL,
+                params=params,
+                headers={'X-Api-Key': api_key},
+                timeout=10,
+            )
             logger.info(f"NREL API response status: {response.status_code}")
             response.raise_for_status()
             data = response.json()
@@ -124,7 +127,7 @@ class NRELClient:
             filtered_stations = []
             for station in stations:
                 # Check ev_dc_fast_num to ensure it has DC fast chargers
-                if station.get('ev_dc_fast_num', 0) > 0:
+                if (station.get('ev_dc_fast_num') or 0) > 0:
                     # Add max power to station data
                     station['max_power_kw'] = NRELClient.extract_max_power(station)
                     
@@ -139,6 +142,9 @@ class NRELClient:
             logger.info(f"Retrieved {len(filtered_stations)} DC Fast Charging stations")
             return filtered_stations
             
-        except (requests.RequestException, ValueError) as e:  # Add ValueError here
-            logger.error(f"NREL API request failed: {str(e)}")
+        except (requests.RequestException, ValueError) as error:
+            response = getattr(error, 'response', None)
+            status_code = getattr(response, 'status_code', None)
+            error_detail = f"HTTP {status_code}" if status_code else type(error).__name__
+            logger.error("NLR API request failed: %s", error_detail)
             return []
