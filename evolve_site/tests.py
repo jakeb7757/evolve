@@ -429,7 +429,7 @@ class EVFitReportTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         report = response.context['report']
-        self.assertEqual(report['verdict']['label'], 'Excellent fit')
+        self.assertEqual(report['verdict']['label'], 'Strong everyday fit')
         self.assertEqual(report['annual_gas_cost'], Decimal('1320.00'))
         self.assertEqual(
             report['annual_electricity_cost'],
@@ -438,15 +438,17 @@ class EVFitReportTest(TestCase):
         self.assertEqual(report['monthly_savings'], Decimal('65.00'))
         self.assertEqual(report['usable_range'], Decimal('240'))
         self.assertTrue(report['level_1_fits'])
-        self.assertEqual(
-            report['closest_station']['station_name'],
-            'Closest Fast Charger',
-        )
+        self.assertEqual(report['station_count'], 2)
+        self.assertEqual(report['network_count'], 2)
         self.assertEqual(
             report['networks'],
             ['IONNA', 'Rivian Adventure Network'],
         )
         self.assertContains(response, 'Evolve EV Fit Report')
+        self.assertContains(
+            response,
+            'This count describes public infrastructure in the area.',
+        )
         self.assertContains(response, 'Copy link')
         mock_get_stations.assert_called_once_with('Oklahoma City, OK')
 
@@ -469,6 +471,41 @@ class EVFitReportTest(TestCase):
         self.assertEqual(report['range_headroom'], Decimal('-10'))
         self.assertEqual(report['station_search_type'], 'zip')
         self.assertEqual(report['station_search_parameter'], 'zip_code')
+
+    def test_area_station_count_does_not_change_fit_verdict(self):
+        cleaned_data = {
+            'location': '73102',
+            'mpg': Decimal('30'),
+            'annual_miles': 12000,
+            'gas_price': Decimal('3.30'),
+            'electricity_cost': Decimal('0.15'),
+            'daily_miles': 40,
+            'charging_hours': 10,
+            'reserve_percent': 20,
+        }
+        stations = [{
+            'id': 100,
+            'station_name': 'Area Charger',
+            'ev_network': 'Example Network',
+        }]
+
+        report_with_station = build_fit_report(
+            self.vehicle,
+            cleaned_data,
+            stations,
+        )
+        report_without_stations = build_fit_report(
+            self.vehicle,
+            cleaned_data,
+            [],
+        )
+
+        self.assertEqual(
+            report_with_station['verdict'],
+            report_without_stations['verdict'],
+        )
+        self.assertEqual(report_with_station['station_count'], 1)
+        self.assertEqual(report_without_stations['station_count'], 0)
 
     @patch('evolve_site.views.NRELClient.get_stations')
     def test_invalid_fit_report_does_not_call_station_api(self, mock_get_stations):

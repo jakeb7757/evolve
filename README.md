@@ -8,7 +8,8 @@ application.
 ## Features
 
 - **EV Fit Report** — Combine ownership savings, buffered EPA range, home
-  charging, and nearby 80+ kW coverage into one shareable report.
+  charging, and an area snapshot of public 80+ kW stations into one shareable
+  report.
 - **Savings Calculator** — Compare the annual and five-year energy costs of a
   current gas vehicle with a specific EV.
 - **Home Charging Calculator** — Determine whether a standard 120V outlet can

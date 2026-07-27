@@ -152,7 +152,7 @@
             <li><i class="bi bi-wallet2"></i><span><strong>Cost</strong>Gas versus home electricity</span></li>
             <li><i class="bi bi-speedometer2"></i><span><strong>Range</strong>Your daily miles plus a reserve</span></li>
             <li><i class="bi bi-house-bolt"></i><span><strong>Home</strong>Whether Level 1 can keep up</span></li>
-            <li><i class="bi bi-geo-alt"></i><span><strong>Road</strong>Nearby public 80+ kW charging</span></li>
+            <li><i class="bi bi-geo-alt"></i><span><strong>Area</strong>Count of nearby public 80+ kW stations</span></li>
         </ul>
         {% endif %}
     </aside>
@@ -196,7 +196,7 @@
                 <small>{{ report.daily_energy }} kWh used on a typical day</small>
             </div>
             <div class="fit-snapshot">
-                <span>Road charging</span>
+                <span>Area fast charging</span>
                 <strong>{{ report.station_count }} station{{ report.station_count|pluralize }}</strong>
                 <small>Public 80+ kW stations within 25 miles</small>
             </div>
@@ -248,19 +248,18 @@
 
         <article class="panel fit-report-card" data-reveal>
             <div class="fit-card-icon"><i class="bi bi-geo-alt"></i></div>
-            <p class="eyebrow">04 / Road charging</p>
+            <p class="eyebrow">04 / Area snapshot</p>
             <h3>{{ report.coverage_label }}</h3>
             <p>{{ report.coverage_detail }}</p>
             <dl class="fit-detail-list">
-                {% if report.closest_station %}
-                <div><dt>Closest</dt><dd>{{ report.closest_station.station_name }}</dd></div>
-                <div><dt>Maximum power</dt><dd>{% if report.closest_station.max_power_kw %}{{ report.closest_station.max_power_kw|floatformat:0 }} kW{% else %}Not listed{% endif %}</dd></div>
-                {% endif %}
+                <div><dt>Qualifying locations</dt><dd>{{ report.station_count }}</dd></div>
+                <div><dt>Networks represented</dt><dd>{{ report.network_count }}</dd></div>
                 <div><dt>Networks nearby</dt><dd>{% if report.networks %}{{ report.networks|join:", " }}{% else %}None returned{% endif %}</dd></div>
             </dl>
+            <p class="fit-card-note">This count describes public infrastructure in the area. It is not filtered for compatibility with the selected vehicle.</p>
             <a class="fit-card-link no-print"
                href="{% url 'evolve_site:station_list' %}?search_type={{ report.station_search_type }}&amp;{{ report.station_search_parameter }}={{ report.location|urlencode }}">
-                Explore these stations <i class="bi bi-arrow-up-right"></i>
+                Explore the area’s stations <i class="bi bi-arrow-up-right"></i>
             </a>
         </article>
     </div>
@@ -279,7 +278,7 @@
                         <p><strong>Cost:</strong> Gas cost is annual miles ÷ MPG × gas price. Electric cost is annual miles × EPA kWh/100 mi ÷ 100 × your electricity rate.</p>
                         <p><strong>Home charging:</strong> Daily energy is compared with 1.4 kW Level 1 and 7.2 kW Level 2 charging during the hours entered.</p>
                         <p><strong>Range:</strong> The reserve you selected is removed from the published EPA range before comparison with your typical daily mileage.</p>
-                        <p class="mb-0"><strong>Road charging:</strong> Evolve searches for available, public DC fast-charging locations with at least one port rated 80 kW or higher within 25 miles. This is planning guidance, not live port availability.</p>
+                        <p class="mb-0"><strong>Area charging:</strong> Evolve reports how many available, public DC fast-charging locations have at least one port rated 80 kW or higher within 25 miles. The count does not claim vehicle compatibility and is not live port availability.</p>
                     </div>
                 </div>
             </div>

@@ -15,13 +15,6 @@ def _round_hours(value):
     return value.quantize(HOURS_PLACES, rounding=ROUND_HALF_UP)
 
 
-def _station_distance(station):
-    try:
-        return float(station.get("distance"))
-    except (TypeError, ValueError):
-        return float("inf")
-
-
 def _network_names(stations):
     networks = {}
     for station in stations:
@@ -118,31 +111,29 @@ def build_fit_report(vehicle, cleaned_data, stations):
             "specific vehicle configuration."
         )
 
-    sorted_stations = sorted(stations, key=_station_distance)
-    closest_station = sorted_stations[0] if sorted_stations else None
-    closest_distance = (
-        _station_distance(closest_station) if closest_station else None
-    )
-    if closest_distance == float("inf"):
-        closest_distance = None
-
-    if closest_station and closest_distance is not None:
-        if closest_distance <= 10:
-            coverage_label = "Strong fast-charging coverage"
+    station_count = len(stations)
+    networks = _network_names(stations)
+    network_count = len(networks)
+    if station_count:
+        station_word = "station" if station_count == 1 else "stations"
+        coverage_label = (
+            f"{station_count} public fast-charging {station_word} found"
+        )
+        if network_count:
+            network_word = "network" if network_count == 1 else "networks"
+            coverage_detail = (
+                f"The area search returned {station_count} public 80+ kW "
+                f"{station_word} across {network_count} {network_word} within "
+                "25 miles."
+            )
         else:
-            coverage_label = "Fast charging available nearby"
-        coverage_detail = (
-            f"{closest_station.get('station_name', 'The closest station')} is "
-            f"about {closest_distance:.1f} miles away."
-        )
-    elif closest_station:
-        coverage_label = "Fast charging found"
-        coverage_detail = (
-            "At least one qualifying station was returned, but its distance "
-            "was not available."
-        )
+            coverage_detail = (
+                f"The area search returned {station_count} public 80+ kW "
+                f"{station_word} within 25 miles. Network names were not "
+                "available."
+            )
     else:
-        coverage_label = "No nearby fast chargers found"
+        coverage_label = "No public fast-charging stations returned"
         coverage_detail = (
             "No public 80+ kW stations were returned for this location. The "
             "station service may also be temporarily unavailable."
@@ -166,44 +157,33 @@ def build_fit_report(vehicle, cleaned_data, stations):
                 "replace the energy used each day."
             ),
         }
-    elif level_1_fits and closest_station:
-        verdict = {
-            "tone": "excellent",
-            "label": "Excellent fit",
-            "summary": (
-                "Your daily driving, home charging window, and nearby fast "
-                "charging all line up well with this EV."
-            ),
-        }
-    elif level_2_fits and closest_station:
+    elif range_fits is None:
         verdict = {
             "tone": "strong",
-            "label": "Strong fit with Level 2",
+            "label": "Promising home-charging fit",
             "summary": (
-                "This EV fits your driving and road-charging needs, with "
-                "Level 2 charging recommended at home."
+                "Your charging window works with this EV, but its EPA range "
+                "was not published, so range fit needs separate confirmation."
             ),
         }
     elif level_1_fits:
         verdict = {
-            "tone": "strong",
-            "label": "Good fit at home",
+            "tone": "excellent",
+            "label": "Strong everyday fit",
             "summary": (
-                "Your routine works well with this EV at home. Confirm fast "
-                "charging along the longer trips you take regularly."
+                "Your typical driving fits this EV’s buffered range, and a "
+                "standard outlet can replace the energy used each day."
             ),
         }
     else:
         verdict = {
             "tone": "strong",
-            "label": "Good fit with Level 2",
+            "label": "Strong fit with Level 2",
             "summary": (
-                "The EV fits your routine with Level 2 home charging. Confirm "
-                "fast charging along the longer trips you take regularly."
+                "This EV fits your typical driving and buffered range, with "
+                "Level 2 charging recommended at home."
             ),
         }
-
-    networks = _network_names(stations)
 
     return {
         "vehicle": vehicle,
@@ -250,11 +230,9 @@ def build_fit_report(vehicle, cleaned_data, stations):
         "range_label": range_label,
         "range_detail": range_detail,
         "reserve_percent": int(reserve_percent),
-        "station_count": len(stations),
+        "station_count": station_count,
         "networks": networks,
-        "network_count": len(networks),
-        "closest_station": closest_station,
-        "closest_distance": closest_distance,
+        "network_count": network_count,
         "coverage_label": coverage_label,
         "coverage_detail": coverage_detail,
     }

@@ -1369,6 +1369,16 @@ label {
     color: var(--ink);
 }
 
+.fit-report-card .fit-card-note {
+    min-height: 0;
+    margin: 1rem 0 0;
+    padding: .75rem;
+    border-radius: 10px;
+    background: #eef1eb;
+    color: var(--muted);
+    font-size: .72rem;
+}
+
 .fit-detail-list {
     margin: 1.4rem 0 0;
 }
