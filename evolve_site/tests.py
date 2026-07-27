@@ -826,6 +826,7 @@ class FuelEconomyCalculatorTest(TestCase):
             response.context["results"]["annual_savings"],
             Decimal("1025.00"),
         )
+        self.assertContains(response, "back in your pocket each month.")
 
     def test_level2_calculator_uses_epa_combined_energy_consumption(self):
         response = self.client.post(
