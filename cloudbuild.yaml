@@ -65,6 +65,17 @@ steps:
       - ${_SERVICE}
       - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${BUILD_ID}
       - --region=${_REGION}
+      - --quiet
+
+  - id: route-latest-traffic
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - services
+      - update-traffic
+      - ${_SERVICE}
+      - --region=${_REGION}
       - --to-latest
       - --quiet
 
