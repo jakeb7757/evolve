@@ -7,7 +7,7 @@
 <header class="page-heading" data-reveal>
     <p class="page-kicker">Charge on the road</p>
     <h1>Find your next fast charge.</h1>
-    <p>Search DC fast chargers by ZIP code or city, then narrow the results by connector and network.</p>
+    <p>Search public fast chargers rated at 80 kW or higher, then narrow the results by connector and network.</p>
 </header>
 
 <form method="get" class="panel station-search-panel" id="search-form" data-reveal>
@@ -50,7 +50,7 @@
 <div id="loading-indicator" class="loading-state" style="display: none;">
     <div class="spinner-border mb-3" role="status"><span class="visually-hidden">Loading...</span></div>
     <h2 class="fs-5">Scanning the area</h2>
-    <p class="mb-0">Searching for DC fast charging stations…</p>
+    <p class="mb-0">Searching for public chargers rated at 80 kW or higher…</p>
 </div>
 
 {% if error_message %}
@@ -200,7 +200,7 @@
 {% elif request.GET.zip_code or request.GET.city_state %}
 <div class="empty-state" data-reveal>
     <div class="empty-state-icon"><i class="bi bi-search"></i></div>
-    <h2>No chargers showed up here.</h2>
+    <h2>No 80+ kW chargers showed up here.</h2>
     <p class="mb-0">Try a nearby ZIP code or a broader city search.</p>
 </div>
 {% else %}

@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 class NRELClient:
     BASE_URL = "https://developer.nlr.gov/api/alt-fuel-stations/v1/nearest.json"
+    MIN_FAST_CHARGE_POWER_KW = 80
 
     @staticmethod
     def geocode_zip(zip_code):
@@ -27,55 +28,38 @@ class NRELClient:
 
     @staticmethod
     def extract_max_power(station):
-        """Extract maximum charging power from station data."""
-        max_power = None
-        
-        # Check for explicit power fields that NREL might provide
-        if 'ev_dc_fast_charger_power' in station and station['ev_dc_fast_charger_power']:
-            max_power = station['ev_dc_fast_charger_power']
-            logger.info(f"Found explicit power: {max_power} kW for {station.get('station_name')}")
-            return max_power
-        
-        # Check network-specific patterns
-        network = station.get('ev_network', '').upper()
-        station_name = station.get('station_name', '').upper()
-        
-        # Tesla Superchargers - check date or name for version hints
-        if 'TESLA' in network:
-            # Try to determine V2 vs V3 based on date or name
-            date_updated = station.get('updated_at', '')
-            open_date = station.get('open_date', '')
-            
-            # V3 Superchargers started rolling out in 2019
-            # If we have a date and it's 2020+, likely V3 (250kW), otherwise V2 (150kW)
-            if open_date and open_date >= '2020-01-01':
-                max_power = 250  # V3
-            elif open_date and open_date >= '2012-01-01':
-                max_power = 150  # V2
-            else:
-                # Conservative estimate if no date info
-                max_power = 150  # Assume V2 to be safe
-                
-        # Electrify America (typically 150-350kW)
-        elif 'ELECTRIFY AMERICA' in network:
-            max_power = 350
-        # EVgo (typically 50-350kW, newer stations are higher)
-        elif 'EVGO' in network:
-            max_power = 350
-        # ChargePoint (varies widely, be conservative)
-        elif 'CHARGEPOINT' in network:
-            max_power = 62.5
-        # Francis Energy (often 150kW+)
-        elif 'FRANCIS' in network:
-            max_power = 150
-        # Blink (typically 50kW)
-        elif 'BLINK' in network:
-            max_power = 50
-        # Generic DC Fast is typically 50kW minimum
-        else:
-            max_power = 50
-            
-        return max_power
+        """Return the highest documented connector power for a station."""
+        powers = []
+
+        # Retain compatibility with responses or fixtures using the older
+        # station-level power field.
+        explicit_power = station.get('ev_dc_fast_charger_power')
+        if explicit_power is not None:
+            try:
+                powers.append(float(explicit_power))
+            except (TypeError, ValueError):
+                pass
+
+        # Current NLR responses report power per connector within each charging
+        # unit. Use those measured values instead of estimating by network.
+        for charging_unit in station.get('ev_charging_units') or []:
+            if not isinstance(charging_unit, dict):
+                continue
+
+            connectors = charging_unit.get('connectors') or {}
+            if not isinstance(connectors, dict):
+                continue
+
+            for connector in connectors.values():
+                if not isinstance(connector, dict):
+                    continue
+                try:
+                    powers.append(float(connector.get('power_kw')))
+                except (TypeError, ValueError):
+                    continue
+
+        valid_powers = [power for power in powers if power > 0]
+        return max(valid_powers, default=None)
 
     @staticmethod
     def get_stations(location):
@@ -104,6 +88,8 @@ class NRELClient:
             'longitude': longitude,
             'fuel_type': 'ELEC',
             'ev_connector_type': 'CHADEMO,J1772COMBO,TESLA',  # DC Fast Charger types
+            'ev_charging_level': 'dc_fast',
+            'ev_power_kw_min': NRELClient.MIN_FAST_CHARGE_POWER_KW,
             'limit': 50,
             'status': 'E',
             'access': 'public',
@@ -123,23 +109,34 @@ class NRELClient:
             data = response.json()
             stations = data.get('fuel_stations', [])
             
-            # Additional client-side filtering and power extraction
+            # Enforce the minimum again using the returned connector data so
+            # pagination and the page's filters only see qualifying stations.
             filtered_stations = []
             for station in stations:
-                # Check ev_dc_fast_num to ensure it has DC fast chargers
-                if (station.get('ev_dc_fast_num') or 0) > 0:
-                    # Add max power to station data
-                    station['max_power_kw'] = NRELClient.extract_max_power(station)
-                    
-                    # Log station details for debugging
-                    logger.debug(f"Station: {station.get('station_name')}, "
-                               f"Network: {station.get('ev_network')}, "
-                               f"Power: {station['max_power_kw']} kW, "
-                               f"Open date: {station.get('open_date')}")
-                    
-                    filtered_stations.append(station)
+                max_power = NRELClient.extract_max_power(station)
+                if (
+                    (station.get('ev_dc_fast_num') or 0) <= 0
+                    or max_power is None
+                    or max_power < NRELClient.MIN_FAST_CHARGE_POWER_KW
+                ):
+                    continue
+
+                station['max_power_kw'] = max_power
+
+                logger.debug(
+                    "Station: %s, Network: %s, Power: %s kW",
+                    station.get('station_name'),
+                    station.get('ev_network'),
+                    station['max_power_kw'],
+                )
+
+                filtered_stations.append(station)
             
-            logger.info(f"Retrieved {len(filtered_stations)} DC Fast Charging stations")
+            logger.info(
+                "Retrieved %s charging stations rated at least %s kW",
+                len(filtered_stations),
+                NRELClient.MIN_FAST_CHARGE_POWER_KW,
+            )
             return filtered_stations
             
         except (requests.RequestException, ValueError) as error:

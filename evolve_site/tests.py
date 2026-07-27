@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.conf import settings
 from django.core.cache import cache
 from django.core.management import call_command
@@ -117,6 +117,7 @@ class NRELClientTest(TestCase):
 
     @patch('evolve_site.services.requests.get')
     @patch('evolve_site.services.NRELClient.geocode_zip')
+    @override_settings(NREL_API_KEY='test-api-key')
     def test_get_stations_success(self, mock_geocode, mock_get):
         """
         Tests that get_stations successfully parses a valid API response.
@@ -139,6 +140,12 @@ class NRELClientTest(TestCase):
                     'ev_dc_fast_num': 8,
                     'ev_network': 'Tesla',
                     'ev_connector_types': ['TESLA'],
+                    'ev_charging_units': [{
+                        'charging_level': 'dc_fast',
+                        'connectors': {
+                            'TESLA': {'power_kw': 250, 'port_count': 8}
+                        },
+                    }],
                     'distance': 2.5
                 },
                 {
@@ -151,7 +158,27 @@ class NRELClientTest(TestCase):
                     'ev_dc_fast_num': 4,
                     'ev_network': 'Electrify America',
                     'ev_connector_types': ['J1772COMBO', 'CHADEMO'],
+                    'ev_charging_units': [{
+                        'charging_level': 'dc_fast',
+                        'connectors': {
+                            'J1772COMBO': {'power_kw': 350, 'port_count': 3},
+                            'CHADEMO': {'power_kw': 50, 'port_count': 1},
+                        },
+                    }],
                     'distance': 3.2
+                },
+                {
+                    'id': 13579,
+                    'station_name': 'Dealership Charger',
+                    'ev_dc_fast_num': 1,
+                    'ev_network': 'ChargePoint Network',
+                    'ev_connector_types': ['J1772COMBO'],
+                    'ev_charging_units': [{
+                        'charging_level': 'dc_fast',
+                        'connectors': {
+                            'J1772COMBO': {'power_kw': 62.5, 'port_count': 1}
+                        },
+                    }],
                 },
                 {
                     'id': 24680,
@@ -170,8 +197,12 @@ class NRELClientTest(TestCase):
         self.assertEqual(len(stations), 2)
         self.assertEqual(stations[0]['station_name'], 'Test Supercharger')
         self.assertEqual(stations[1]['station_name'], 'Test EA Station')
+        self.assertEqual(stations[0]['max_power_kw'], 250)
+        self.assertEqual(stations[1]['max_power_kw'], 350)
         request_kwargs = mock_get.call_args.kwargs
         self.assertNotIn('api_key', request_kwargs['params'])
+        self.assertEqual(request_kwargs['params']['ev_charging_level'], 'dc_fast')
+        self.assertEqual(request_kwargs['params']['ev_power_kw_min'], 80)
         self.assertEqual(
             request_kwargs['headers']['X-Api-Key'],
             settings.NREL_API_KEY
@@ -283,31 +314,37 @@ class NRELClientTest(TestCase):
 
     def test_extract_max_power_tesla(self):
         """
-        Tests power extraction for Tesla Superchargers.
+        Tests that the highest documented connector power is returned.
         """
-        station_v3 = {
+        station = {
             'station_name': 'Tesla Supercharger',
             'ev_network': 'Tesla',
-            'open_date': '2020-05-01'
+            'ev_charging_units': [{
+                'connectors': {
+                    'TESLA': {'power_kw': 150, 'port_count': 4},
+                },
+            }, {
+                'connectors': {
+                    'NACS': {'power_kw': 250, 'port_count': 8},
+                },
+            }],
         }
-        power = NRELClient.extract_max_power(station_v3)
-        self.assertEqual(power, 250)  # V3 Supercharger
-
-        station_v2 = {
-            'station_name': 'Tesla Supercharger',
-            'ev_network': 'Tesla',
-            'open_date': '2015-03-01'
-        }
-        power = NRELClient.extract_max_power(station_v2)
-        self.assertEqual(power, 150)  # V2 Supercharger
+        power = NRELClient.extract_max_power(station)
+        self.assertEqual(power, 250)
 
     def test_extract_max_power_electrify_america(self):
         """
-        Tests power extraction for Electrify America stations.
+        Tests power extraction across multiple connector types.
         """
         station = {
             'station_name': 'EA Station',
-            'ev_network': 'Electrify America'
+            'ev_network': 'Electrify America',
+            'ev_charging_units': [{
+                'connectors': {
+                    'J1772COMBO': {'power_kw': '350', 'port_count': 3},
+                    'CHADEMO': {'power_kw': 50, 'port_count': 1},
+                },
+            }],
         }
         power = NRELClient.extract_max_power(station)
         self.assertEqual(power, 350)
@@ -323,6 +360,18 @@ class NRELClientTest(TestCase):
         }
         power = NRELClient.extract_max_power(station)
         self.assertEqual(power, 175)
+
+    def test_extract_max_power_returns_none_without_documented_power(self):
+        """
+        Stations are not assigned an estimated power based on their network.
+        """
+        station = {
+            'station_name': 'Unknown-power Station',
+            'ev_network': 'Tesla',
+            'ev_charging_units': [{'connectors': None}],
+        }
+        power = NRELClient.extract_max_power(station)
+        self.assertIsNone(power)
 
 
 class StationListViewTest(TestCase):
