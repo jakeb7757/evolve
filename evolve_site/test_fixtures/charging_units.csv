@@ -1,0 +1,12 @@
+ID,Station Name,Street Address,City,State,ZIP,Latitude,Longitude,Status Code,Access Code,Facility Type,EV Network,EV DC Fast Count,EV CCS Connector Count,EV CCS Power Output (kW),EV CHAdeMO Connector Count,EV CHAdeMO Power Output (kW),EV J3400 Connector Count,EV J3400 Power Output (kW),EV J3271 Connector Count,EV J3271 Power Output (kW)
+1001,Alpha Plaza,1 Main St,Example City,OK,73000,35.5,-97.5,E,public,SHOPPING_CENTER,Tesla,8,2,"150, 250",0,,0,,0,
+1001,Alpha Plaza,1 Main St,Example City,OK,73000,35.5,-97.5,E,public,SHOPPING_CENTER,Tesla,8,2,"150, 250",0,,0,,0,
+1001,Alpha Plaza,1 Main St,Example City,OK,73000,35.5,-97.5,E,public,SHOPPING_CENTER,Tesla,8,1,350,0,,0,,0,
+1002,Beta Travel Stop,2 Road Ave,Austin,tx,73301,30.2,-97.7,E,public,TRAVEL_CENTER,Tesla,4,0,,1,50,4,250,0,
+1003,Gamma Garage,,Tulsa,OK,74101,36.1,-95.9,E,public,PARKING_GARAGE,Electrify America,2,2,150,0,,0,,0,
+1004,Missing Power,4 Blank Rd,Denver,CO,80014,39.7,-104.9,E,public,,Electrify America,1,1,,0,,0,,0,
+1005,Planned Site,5 Future Way,Phoenix,AZ,85001,33.4,-112.0,P,public,,IONNA,12,12,350,0,,0,,0,
+1006,Temporarily Closed,6 Repair Ln,Reno,NV,89501,39.5,-119.8,T,public,,IONNA,6,6,350,0,,0,,0,
+,No Station ID,7 Error Rd,Chicago,IL,60601,41.8,-87.6,E,public,,Tesla,2,2,150,0,,0,,0,
+1008,Unknown Network,8 Mystery Rd,Boston,MA,02108,42.3,-71.0,E,public,,UNKNOWN_NET,4,4,150,0,,0,,0,
+1009,Missing State,9 Null Ave,,,00000,35.0,-96.0,E,public,,Tesla,0,0,,0,,0,,0,

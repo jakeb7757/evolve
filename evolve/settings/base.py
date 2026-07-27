@@ -107,8 +107,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = 'evolve_site:home'
 LOGOUT_REDIRECT_URL = 'evolve_site:home'
 
-# NREL API
-NREL_API_KEY = os.environ.get('NREL_API_KEY')
+# NLR/AFDC APIs. NREL_API_KEY remains a backwards-compatible deployment alias.
+NLR_API_KEY = os.environ.get('NLR_API_KEY') or os.environ.get('NREL_API_KEY')
+NREL_API_KEY = NLR_API_KEY
 
 # Cache configuration (ADR-0005)
 CACHES = {

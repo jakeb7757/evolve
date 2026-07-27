@@ -33,4 +33,11 @@ urlpatterns = [
     # Stations
     path('stations/', views.StationListView.as_view(), name='station_list'),
     path('stations/status/', SubmitStationStatusView.as_view(), name='submit_station_status'),
+
+    # Charging Network Index
+    path('charging-networks/', views.charging_network_leaderboard, name='charging_networks'),
+    path('charging-networks/methodology/', views.charging_network_methodology, name='charging_network_methodology'),
+    path('charging-networks/export.csv', views.charging_network_export, name='charging_network_export'),
+    path('charging-networks/embed/leaderboard/', views.charging_network_embed, name='charging_network_embed'),
+    path('charging-networks/<slug:slug>/', views.charging_network_detail, name='charging_network_detail'),
 ]

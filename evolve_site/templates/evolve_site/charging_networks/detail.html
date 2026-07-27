@@ -1,0 +1,160 @@
+{% extends "evolve_site/base.html" %}
+
+{% block title %}{{ metric.network.name }} Infrastructure Score | Evolve Charging Network Index{% endblock %}
+{% block meta_description %}Explore {{ metric.network.name }} public DC fast-charging locations, ports, state coverage, site size, charging power, connectors, and transparent Infrastructure Score.{% endblock %}
+{% block social_meta %}
+<meta property="og:title" content="{{ metric.network.name }} Infrastructure Score | Evolve">
+<meta property="og:description" content="{{ metric.site_count }} public DC fast-charging locations and {{ metric.dc_fast_port_count }} listed ports in the Evolve Charging Network Index.">
+<meta property="og:type" content="article">
+{% endblock %}
+{% block body_class %}network-detail-page{% endblock %}
+
+{% block content %}
+<nav class="index-breadcrumb" aria-label="Breadcrumb">
+    <a href="{% url 'evolve_site:charging_networks' %}">Charging Network Index</a>
+    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+    <span aria-current="page">{{ metric.network.name }}</span>
+</nav>
+
+<header class="network-detail-hero">
+    <div>
+        <span class="eyebrow">{{ snapshot_date|date:"F Y" }} infrastructure snapshot</span>
+        <h1>{{ metric.network.name }}</h1>
+        <p>
+            This profile describes physical public DC fast-charging infrastructure reported
+            by NLR/AFDC. It is not a reliability or charging-experience review.
+        </p>
+        {% if metric.network.network_url %}
+        <a class="network-site-link" href="{{ metric.network.network_url }}" rel="noopener noreferrer">
+            Network website <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+        </a>
+        {% endif %}
+    </div>
+    <div class="detail-score grade-{{ metric.infrastructure_grade|lower }}">
+        {% if metric.is_scored %}
+        <span>Infrastructure Score</span>
+        <strong>{{ metric.infrastructure_score }}</strong>
+        <small>Grade {{ metric.infrastructure_grade }} · Version {{ scoring_version }}</small>
+        {% else %}
+        <span>Emerging network</span>
+        <strong>—</strong>
+        <small>Below the 10-location scoring threshold</small>
+        {% endif %}
+    </div>
+</header>
+
+<section class="network-summary-grid" aria-label="Headline metrics">
+    <article><span>Fast-charging locations</span><strong>{{ metric.site_count|floatformat:"0g" }}</strong></article>
+    <article><span>DC fast-charging ports</span><strong>{{ metric.dc_fast_port_count|floatformat:"0g" }}</strong></article>
+    <article><span>Average ports/site</span><strong>{{ metric.average_ports_per_site|floatformat:1 }}</strong><small>Median {{ metric.median_ports_per_site|floatformat:1 }}</small></article>
+    <article><span>States + D.C.</span><strong>{{ metric.states_covered }}/51</strong></article>
+</section>
+
+<aside class="metric-narrative">
+    <div>
+        <span class="eyebrow">What stands out</span>
+        <p>This network has {{ summary.strengths|join:", " }}.</p>
+    </div>
+    <div>
+        <span class="eyebrow">Interpret with care</span>
+        <p>Its profile has {{ summary.limitations|join:", " }}.</p>
+    </div>
+</aside>
+
+{% if metric.is_scored %}
+<section class="detail-section" aria-labelledby="breakdown-heading">
+    <div class="section-heading">
+        <div><span class="eyebrow">Reproducible calculation</span><h2 id="breakdown-heading">Score breakdown</h2></div>
+        <a href="{% url 'evolve_site:charging_network_methodology' %}">How scoring works</a>
+    </div>
+    <div class="score-bars" aria-hidden="true">
+        {% for component in component_rows %}
+        <div class="score-bar-row">
+            <span>{{ component.name }}</span>
+            <div class="score-bar-track"><span style="width: {{ component.score|floatformat:1 }}%"></span></div>
+            <strong>{{ component.score|floatformat:1 }}</strong>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="network-table-wrap accessible-data-table">
+        <table class="network-table">
+            <caption>Raw values, normalized component scores, weights, and weighted contributions</caption>
+            <thead><tr><th scope="col">Component</th><th scope="col">Raw metric</th><th scope="col">Score</th><th scope="col">Weight</th><th scope="col">Contribution</th></tr></thead>
+            <tbody>
+                {% for component in component_rows %}
+                <tr><th scope="row">{{ component.name }}</th><td>{{ component.raw }}</td><td>{{ component.score|floatformat:1 }}</td><td>{{ component.weight|floatformat:0 }}%</td><td>{{ component.contribution|floatformat:2 }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endif %}
+
+<div class="detail-chart-grid">
+    <section class="detail-section distribution-card" aria-labelledby="site-size-heading">
+        <span class="eyebrow">Site design</span>
+        <h2 id="site-size-heading">Site-size distribution</h2>
+        <div class="distribution-bars">
+            {% for row in site_distribution %}
+            <div>
+                <span>{{ row.label }}</span>
+                <div class="distribution-track"><span style="width: {{ row.percentage|floatformat:1 }}%"></span></div>
+                <strong>{{ row.count }}</strong>
+            </div>
+            {% endfor %}
+        </div>
+        <table class="visually-hidden"><caption>Site-size distribution data</caption><thead><tr><th>Size</th><th>Sites</th><th>Percent</th></tr></thead><tbody>{% for row in site_distribution %}<tr><th>{{ row.label }}</th><td>{{ row.count }}</td><td>{{ row.percentage|floatformat:1 }}%</td></tr>{% endfor %}</tbody></table>
+    </section>
+    <section class="detail-section distribution-card" aria-labelledby="power-heading">
+        <span class="eyebrow">Listed maximum per site</span>
+        <h2 id="power-heading">Charging-power distribution</h2>
+        <p>{{ metric.power_data_coverage|floatformat:1 }}% of sites have usable power data.</p>
+        <div class="distribution-bars power-bars">
+            {% for row in power_distribution %}
+            <div>
+                <span>{{ row.label }}</span>
+                <div class="distribution-track"><span style="width: {{ row.percentage|floatformat:1 }}%"></span></div>
+                <strong>{{ row.count }}</strong>
+            </div>
+            {% endfor %}
+        </div>
+        <table class="visually-hidden"><caption>Power distribution data</caption><thead><tr><th>Power</th><th>Sites</th><th>Percent</th></tr></thead><tbody>{% for row in power_distribution %}<tr><th>{{ row.label }}</th><td>{{ row.count }}</td><td>{{ row.percentage|floatformat:1 }}%</td></tr>{% endfor %}</tbody></table>
+    </section>
+</div>
+
+<section class="detail-section" aria-labelledby="connectors-heading">
+    <div class="section-heading"><div><span class="eyebrow">Listed connectors</span><h2 id="connectors-heading">Connector mix</h2></div><p>Connector counts are not guaranteed simultaneous charging capacity.</p></div>
+    <div class="connector-grid">
+        {% for connector in connector_rows %}
+        <article>
+            <span>{{ connector.name }}</span>
+            <strong>{{ connector.count|floatformat:"0g" }}</strong>
+            <div class="connector-track" aria-hidden="true"><i style="width: {{ connector.percentage|floatformat:1 }}%"></i></div>
+        </article>
+        {% endfor %}
+    </div>
+    <table class="visually-hidden"><caption>Listed connector mix</caption><thead><tr><th>Connector</th><th>Count</th><th>Share of listed connectors</th></tr></thead><tbody>{% for connector in connector_rows %}<tr><th>{{ connector.name }}</th><td>{{ connector.count }}</td><td>{{ connector.percentage|floatformat:1 }}%</td></tr>{% endfor %}</tbody></table>
+</section>
+
+<div class="detail-table-grid">
+    <section class="detail-section" aria-labelledby="states-heading">
+        <span class="eyebrow">Geographic footprint</span><h2 id="states-heading">State coverage</h2>
+        <div class="network-table-wrap compact-table"><table class="network-table"><thead><tr><th scope="col">State</th><th scope="col">Locations</th></tr></thead><tbody>{% for row in state_rows %}<tr><th scope="row">{{ row.name }} <small>{{ row.code }}</small></th><td>{% if row.site_count %}{{ row.site_count }}{% else %}<span class="data-unknown" aria-label="No reported locations">—</span>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+    </section>
+    <section class="detail-section" aria-labelledby="largest-heading">
+        <span class="eyebrow">By listed DC-fast ports</span><h2 id="largest-heading">Largest reported sites</h2>
+        <div class="network-table-wrap compact-table"><table class="network-table"><thead><tr><th scope="col">Location</th><th scope="col">Ports</th><th scope="col">Max power</th></tr></thead><tbody>{% for station in largest_sites %}<tr><th scope="row">{{ station.station_name|default:"Unnamed location" }}<small>{{ station.city }}{% if station.city and station.state %}, {% endif %}{{ station.state }}</small></th><td>{{ station.dc_fast_port_count }}</td><td>{% if station.max_power_kw %}{{ station.max_power_kw|floatformat:"0g" }} kW{% else %}Unknown{% endif %}</td></tr>{% empty %}<tr><td colspan="3">No site records.</td></tr>{% endfor %}</tbody></table></div>
+    </section>
+</div>
+
+<aside class="tesla-note">
+    <strong>Vehicle compatibility is outside this score.</strong>
+    NLR identifies Tesla Supercharger infrastructure, but the dataset does not fully classify
+    which locations are open to every non-Tesla vehicle or adapter combination.
+</aside>
+
+<footer class="index-attribution">
+    <p>Station data sourced from the U.S. Department of Energy Alternative Fuels Data Center and National Laboratory of the Rockies. Scores and analysis are calculated by Evolve; no government endorsement is implied.</p>
+    <p>NLR dataset updated {{ source_last_updated_at|date:"M j, Y" }} · Evolve imported {{ imported_at|date:"M j, Y, g:i A T" }}{% if metric.source_network_last_import_date %} · Network source last imported {{ metric.source_network_last_import_date|date:"M j, Y" }}{% endif %}</p>
+</footer>
+{% endblock %}

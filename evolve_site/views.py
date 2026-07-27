@@ -24,6 +24,14 @@ from django.views import View
 from django.db import DatabaseError
 from django.conf import settings
 
+from .charging_views import (
+    charging_network_detail,
+    charging_network_embed,
+    charging_network_export,
+    charging_network_leaderboard,
+    charging_network_methodology,
+)
+
 
 def get_vehicle_year_choices():
     """

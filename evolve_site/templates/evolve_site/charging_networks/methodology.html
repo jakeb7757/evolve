@@ -1,0 +1,78 @@
+{% extends "evolve_site/base.html" %}
+
+{% block title %}Charging Network Index Methodology | Evolve{% endblock %}
+{% block meta_description %}See how Evolve calculates its transparent Infrastructure Score from public NLR and Alternative Fuels Data Center charging-station data.{% endblock %}
+{% block body_class %}network-methodology-page{% endblock %}
+
+{% block content %}
+<nav class="index-breadcrumb" aria-label="Breadcrumb">
+    <a href="{% url 'evolve_site:charging_networks' %}">Charging Network Index</a>
+    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+    <span aria-current="page">Methodology</span>
+</nav>
+<header class="methodology-hero">
+    <span class="eyebrow">Scoring version {{ scoring_version }}</span>
+    <h1>Methodology you can audit</h1>
+    <p>The Infrastructure Score is a narrow measurement of reported physical infrastructure. Its formulas, thresholds, confidence adjustment, and limitations are published here so the result can be reproduced.</p>
+</header>
+
+<div class="methodology-layout">
+    <aside class="methodology-toc">
+        <strong>On this page</strong>
+        <a href="#measures">What it measures</a>
+        <a href="#source">Source and inclusion</a>
+        <a href="#score">Score formula</a>
+        <a href="#missing-data">Missing data</a>
+        <a href="#limitations">Known limitations</a>
+        <a href="#changelog">Changelog</a>
+    </aside>
+    <article class="methodology-content">
+        <section id="measures">
+            <span class="eyebrow">Scope</span><h2>What the index measures</h2>
+            <p>It measures the scale and design of public, available U.S. DC fast-charging infrastructure reported by NLR/AFDC: locations, ports, site size, state coverage, listed connector power, and connector support.</p>
+            <div class="not-measured">
+                <strong>It does not measure</strong>
+                <p>Reliability, uptime, live availability, charging-session success, congestion, wait times, pricing, amenities, app quality, customer support, or vehicle-specific charging performance.</p>
+            </div>
+        </section>
+        <section id="source">
+            <span class="eyebrow">Daily batch data</span><h2>Source and inclusion</h2>
+            <p>Evolve imports the NLR Alternative Fuel Stations charging-unit CSV once daily. The import is filtered to the United States, public access, available status, and DC fast charging. Pages never contact NLR while a user waits.</p>
+            <p>An explicit configured allowlist prevents destination-only and very small incidental operators from being treated automatically as national competitors. Rivian Adventure Network is kept separate from Rivian Waypoints. Tesla Destination is excluded.</p>
+            <p>Networks with fewer than {{ thresholds.minimum_scored_sites }} included locations appear as Emerging Networks and do not receive a score. State coverage uses the 50 states plus the District of Columbia, a denominator of 51; territories are preserved but excluded from the headline percentage.</p>
+        </section>
+        <section id="score">
+            <span class="eyebrow">0–100 points</span><h2>Infrastructure Score formula</h2>
+            <div class="weight-list">
+                {% for name, weight in weights %}
+                <div><span>{{ name }}</span><div><i style="width: {{ weight|floatformat:0 }}%"></i></div><strong>{{ weight|floatformat:0 }}%</strong></div>
+                {% endfor %}
+            </div>
+            <dl class="formula-list">
+                <div><dt>Geographic coverage</dt><dd><code>states covered / 51 × 100</code>, capped at 100.</dd></div>
+                <div><dt>Total ports</dt><dd><code>log(1 + network ports) / log(1 + largest eligible network ports) × 100</code>.</dd></div>
+                <div><dt>Average site size</dt><dd><code>min(average ports per site / {{ thresholds.average_site_size_target }}, 1) × 100</code>.</dd></div>
+                <div><dt>Large-site share</dt><dd>Percentage of locations with at least {{ thresholds.large_site_ports }} DC-fast ports.</dd></div>
+                <div><dt>High-power share</dt><dd><code>high-power percentage × min(power-data coverage / {{ thresholds.power_confidence_target_percentage }}, 1)</code>. High-power means at least {{ thresholds.high_power_kw }} kW.</dd></div>
+                <div><dt>Connector support</dt><dd>100 points for meaningful CCS and J3400/NACS counts, 70 for either, 20 for primarily CHAdeMO-only data, and 0 without usable connector data. “Meaningful” means at least 5% of ports or {{ thresholds.meaningful_connector_count_cap }} connectors, whichever is lower.</dd></div>
+            </dl>
+            <p>The final score is the sum of each normalized component score multiplied by its weight. Public values are rounded to one decimal; unrounded values are retained internally and component contributions appear on every detail page.</p>
+        </section>
+        <section id="missing-data">
+            <span class="eyebrow">Confidence, not quality</span><h2>Missing-data handling</h2>
+            <p>Missing power remains unknown, never zero. High-power share uses only locations with known power in its denominator. A confidence adjustment prevents sparse power reporting from producing an artificially high component score. Source freshness is displayed but is not scored.</p>
+            <p>The charging-unit export may repeat station-level totals across rows. Evolve groups data by NLR station ID, takes station-level DC-fast port and connector totals once using their maximum reported value, and preserves unique connector power values.</p>
+        </section>
+        <section id="limitations">
+            <span class="eyebrow">Read before comparing</span><h2>Known limitations</h2>
+            <p>The Evolve Infrastructure Score measures the scale and design of public DC fast-charging infrastructure reported in the Alternative Fuels Data Center. Some networks may have incomplete or differently refreshed power and connector data. Listed connector counts do not necessarily equal independently usable simultaneous ports.</p>
+            <p>NLR identifies Tesla Supercharger infrastructure, but this dataset does not fully classify which locations are available to each non-Tesla vehicle or adapter combination. Tesla and non-Tesla charging experiences should therefore be evaluated separately from the shared infrastructure score.</p>
+            <p>NLR and the U.S. Department of Energy supply the source data but do not endorse Evolve’s transformation, analysis, or score.</p>
+        </section>
+        <section id="changelog">
+            <span class="eyebrow">Version history</span><h2>Changelog</h2>
+            <div class="changelog-entry"><strong>1.0</strong><span>Initial infrastructure model: six weighted components, 10-location minimum, 51-region coverage denominator, and power-data confidence adjustment.</span></div>
+        </section>
+    </article>
+</div>
+{% endblock %}

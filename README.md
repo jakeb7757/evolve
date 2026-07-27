@@ -18,6 +18,9 @@ application.
 - **Fast-Charger Finder** — Search public stations rated at least 80 kW by ZIP
   code or city, then filter the complete result set by connector and the
   networks available in that area.
+- **Charging Network Index** — Compare major U.S. public DC-fast networks using
+  transparent, reproducible infrastructure metrics, network profiles, and a
+  downloadable aggregate snapshot.
 - **Community Status Reports** — Registered users can report a station as
   working, busy, or broken.
 - **EPA Vehicle Catalog** — A scheduled synchronization keeps the local EV
@@ -74,11 +77,13 @@ Create a `.env` file beside `manage.py`:
 
 ```ini
 SECRET_KEY=replace-with-a-local-development-key
-NREL_API_KEY=replace-with-your-nlr-developer-key
+NLR_API_KEY=replace-with-your-nlr-developer-key
 ```
 
-The API key is required for station searches and the road-charging portion of
-the EV Fit Report. The rest of the application can run without it.
+The API key is required for station searches, the road-charging portion of the
+EV Fit Report, and Charging Network Index refreshes. It is never exposed to
+browser code. Existing deployments may temporarily keep the legacy
+`NREL_API_KEY` variable; the settings layer accepts it as a fallback.
 
 Do not set `DJANGO_SETTINGS_MODULE` for normal local development. `manage.py`
 uses `evolve.settings.local`, which stores data in `db.sqlite3`.
@@ -89,6 +94,7 @@ uses `evolve.settings.local`, which stores data in `db.sqlite3`.
 python manage.py migrate
 python manage.py sync_fueleconomy --dry-run
 python manage.py sync_fueleconomy
+python manage.py refresh_charging_networks
 ```
 
 The synchronization command downloads the official FuelEconomy.gov CSV and
@@ -150,6 +156,20 @@ transactional inserts, updates, and stale-record deactivations.
 Production job setup and scheduling are documented in
 [docs/fueleconomy-cloud-run.md](docs/fueleconomy-cloud-run.md).
 
+## Charging Network Index refresh
+
+Refresh the precomputed NLR/AFDC snapshot and inspect its status:
+
+```bash
+python manage.py refresh_charging_networks
+python manage.py charging_network_status
+```
+
+An import failure leaves the prior valid snapshot active. Production
+architecture, scoring decisions, job bootstrap, daily scheduling, and the
+large-decrease safety override are documented in
+[docs/charging-network-index.md](docs/charging-network-index.md).
+
 ## Deployment
 
 Production is deployed to Google Cloud Run through the repository’s Cloud Build
@@ -157,7 +177,7 @@ trigger. A push to the configured `master` branch runs `cloudbuild.yaml`, which:
 
 1. Builds and pushes an immutable container image to Artifact Registry.
 2. Updates and executes the Cloud Run migration job.
-3. Updates the scheduled vehicle-catalog synchronization job.
+3. Updates the scheduled vehicle-catalog and Charging Network Index jobs.
 4. Deploys the new application revision.
 5. Routes service traffic to the latest ready revision.
 
@@ -173,7 +193,8 @@ commit a populated `.env` file or credential values.
 evolve/
 ├── evolve/                 Django project settings and root URLs
 ├── evolve_site/            Application models, views, forms, services, and UI
-│   ├── management/         FuelEconomy.gov synchronization command
+│   ├── charging_index/     NLR parsing, aggregation, scoring, and imports
+│   ├── management/         Vehicle and charging-data refresh commands
 │   ├── migrations/         Database schema history
 │   ├── static/             CSS, JavaScript, and city suggestion data
 │   └── templates/          Django templates

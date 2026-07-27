@@ -1,0 +1,163 @@
+{% extends "evolve_site/base.html" %}
+
+{% block title %}U.S. EV Fast-Charging Networks Ranked by Infrastructure | Evolve{% endblock %}
+{% block meta_description %}Compare U.S. DC fast-charging networks by locations, ports, site size, state coverage, charging power, and connector support using public NLR data.{% endblock %}
+{% block social_meta %}
+<meta property="og:title" content="U.S. EV Fast-Charging Networks Ranked by Infrastructure">
+<meta property="og:description" content="A transparent comparison of public U.S. DC fast-charging infrastructure using NLR and AFDC data.">
+<meta property="og:type" content="website">
+{% endblock %}
+{% block body_class %}{% if embed %}network-index-embed{% else %}network-index-page{% endif %}{% endblock %}
+{% block navbar %}{% if not embed %}{{ block.super }}{% endif %}{% endblock %}
+{% block footer %}{% if not embed %}{{ block.super }}{% endif %}{% endblock %}
+
+{% block content %}
+<section class="index-hero {% if embed %}index-hero-embed{% endif %}">
+    <div>
+        <span class="eyebrow">Public infrastructure, measured clearly</span>
+        <h1>Charging Network Index</h1>
+        <p class="index-lede">
+            Compare the scale and design of major U.S. public DC fast-charging networks.
+            Every Infrastructure Score is calculated from published NLR/AFDC station data.
+        </p>
+    </div>
+    {% if not data_unavailable %}
+    <div class="freshness-card" aria-label="Data freshness">
+        <span>Data snapshot</span>
+        <strong>{{ snapshot_date|date:"M j, Y" }}</strong>
+        <small>NLR updated {{ source_last_updated_at|date:"M j, Y" }}</small>
+    </div>
+    {% endif %}
+</section>
+
+{% if data_unavailable %}
+<section class="index-empty">
+    <i class="bi bi-database-exclamation" aria-hidden="true"></i>
+    <h2>The first data snapshot has not been imported yet.</h2>
+    <p>The rest of Evolve is available. The Charging Network Index will appear after the production refresh job completes.</p>
+</section>
+{% else %}
+<aside class="index-scope" id="score-limitations">
+    <i class="bi bi-info-circle" aria-hidden="true"></i>
+    <p>
+        <strong>This is an infrastructure score—not a verdict on the best charging experience.</strong>
+        It does not measure reliability, uptime, live availability, congestion, pricing, amenities,
+        app quality, or vehicle-specific compatibility.
+    </p>
+</aside>
+
+<div class="index-actions">
+    <div>
+        <span class="eyebrow">Version {{ scoring_version }}</span>
+        <p>Sorted by {{ sort_label }} ({{ sort_direction }}ending).</p>
+        <span class="visually-hidden" aria-live="polite">
+            Leaderboard sorted by {{ sort_label }}, {{ sort_direction }}ending.
+        </span>
+    </div>
+    <div class="index-action-links">
+        <a class="btn btn-outline-dark" href="{% url 'evolve_site:charging_network_methodology' %}">
+            <i class="bi bi-journal-text" aria-hidden="true"></i> Methodology
+        </a>
+        <a class="btn btn-dark" href="{% url 'evolve_site:charging_network_export' %}">
+            <i class="bi bi-download" aria-hidden="true"></i> Download CSV
+        </a>
+    </div>
+</div>
+
+<section aria-labelledby="leaderboard-heading">
+    <div class="section-heading">
+        <div>
+            <span class="eyebrow">Scored networks</span>
+            <h2 id="leaderboard-heading">Infrastructure leaderboard</h2>
+        </div>
+        <p>Networks need at least {{ minimum_scored_sites }} included locations to receive a score.</p>
+    </div>
+    <div class="network-table-wrap">
+        <table class="network-table">
+            <caption class="visually-hidden">Charging networks and their infrastructure metrics</caption>
+            <thead>
+                <tr>
+                    <th scope="col">Network</th>
+                    {% for header in headers %}
+                    <th scope="col" aria-sort="{% if header.is_current %}{% if header.direction == 'desc' %}descending{% else %}ascending{% endif %}{% else %}none{% endif %}">
+                        <a href="{{ header.url }}">
+                            {{ header.label }}
+                            {% if header.is_current %}
+                            <i class="bi bi-arrow-{% if header.direction == 'desc' %}down{% else %}up{% endif %}" aria-hidden="true"></i>
+                            {% endif %}
+                        </a>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for metric in scored_metrics %}
+                <tr>
+                    <th scope="row">
+                        <a class="network-name-link" href="{% url 'evolve_site:charging_network_detail' metric.network.slug %}">
+                            {{ metric.network.name }}
+                        </a>
+                        <span class="network-key">{{ metric.network.network_key }}</span>
+                    </th>
+                    <td>
+                        <span class="index-score grade-{{ metric.infrastructure_grade|lower }}" aria-describedby="score-limitations">
+                            <strong>{{ metric.infrastructure_score }}</strong>
+                            <span aria-label="Infrastructure grade {{ metric.infrastructure_grade }}">{{ metric.infrastructure_grade }}</span>
+                        </span>
+                    </td>
+                    <td>{{ metric.site_count|floatformat:"0g" }}</td>
+                    <td>{{ metric.dc_fast_port_count|floatformat:"0g" }}</td>
+                    <td>{{ metric.average_ports_per_site|floatformat:1 }}</td>
+                    <td>{{ metric.states_covered }}/51</td>
+                    <td>{{ metric.large_site_percentage|floatformat:1 }}%</td>
+                    <td>
+                        {% if metric.high_power_site_percentage is not None %}
+                        {{ metric.high_power_site_percentage|floatformat:1 }}%
+                        <small>{{ metric.power_data_coverage|floatformat:0 }}% data coverage</small>
+                        {% else %}
+                        <span class="data-unknown">Unknown</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8">No networks met the scoring threshold in this snapshot.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+{% if emerging_metrics %}
+<section class="emerging-section" aria-labelledby="emerging-heading">
+    <div class="section-heading">
+        <div>
+            <span class="eyebrow">Early footprint</span>
+            <h2 id="emerging-heading">Emerging networks</h2>
+        </div>
+        <p>Shown transparently, but not scored until they reach {{ minimum_scored_sites }} locations.</p>
+    </div>
+    <div class="emerging-grid">
+        {% for metric in emerging_metrics %}
+        <a class="emerging-card" href="{% url 'evolve_site:charging_network_detail' metric.network.slug %}">
+            <span>{{ metric.network.name }}</span>
+            <strong>{{ metric.site_count }} location{{ metric.site_count|pluralize }}</strong>
+            <small>{{ metric.dc_fast_port_count }} listed DC-fast ports</small>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<footer class="index-attribution">
+    <p>
+        Station data sourced from the U.S. Department of Energy Alternative Fuels Data Center
+        and National Laboratory of the Rockies. Scores and analysis are calculated by Evolve.
+        NLR and DOE do not endorse this score.
+    </p>
+    <p>
+        Imported {{ imported_at|date:"M j, Y, g:i A T" }} ·
+        <a href="{% url 'evolve_site:charging_network_methodology' %}">Read the methodology and limitations</a>
+    </p>
+</footer>
+{% endif %}
+{% endblock %}

@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 
 project_id="portfolio-478704"
 region="us-central1"
 service_name="evolve-app"
 service_account="405148685226-compute@developer.gserviceaccount.com"
 cloud_sql_instance="portfolio-478704:us-central1:evolve-db"
-image="${1:-us-central1-docker.pkg.dev/portfolio-478704/cloud-run-source-deploy/evolve-app:fueleconomy-bootstrap}"
+image="${1:-}"
 
 task_dir="$(mktemp -d)"
 service_json="${task_dir}/service.json"
@@ -24,6 +25,14 @@ gcloud run services describe "${service_name}" \
     --project "${project_id}" \
     --region "${region}" \
     --format=json > "${service_json}"
+
+if [[ -z "${image}" ]]; then
+    image="$(jq -r '.spec.template.spec.containers[0].image' "${service_json}")"
+fi
+if [[ -z "${image}" || "${image}" == "null" ]]; then
+    echo "Unable to determine the deployed ${service_name} image." >&2
+    exit 1
+fi
 
 jq '
     [.spec.template.spec.containers[0].env[]
@@ -68,3 +77,4 @@ deploy_job() {
 
 deploy_job "evolve-migrate" "10m" manage.py migrate --noinput
 deploy_job "evolve-sync-vehicles" "20m" manage.py sync_fueleconomy
+deploy_job "evolve-refresh-charging" "30m" manage.py refresh_charging_networks
