@@ -197,14 +197,14 @@ class Level2ChargerCalculatorView(FormView):
 
         daily_kwh_needed = (daily_miles / epa_range) * battery_capacity
 
-        charge_rate_110 = 1.4  # kW for Level 1 (110V)
+        charge_rate_120 = 1.4  # kW for Level 1 (120V)
         charge_rate_240 = 7.2  # kW for Level 2 (240V)
 
-        charge_hours_110 = round(daily_kwh_needed / charge_rate_110, 2)
+        charge_hours_120 = round(daily_kwh_needed / charge_rate_120, 2)
         charge_hours_240 = round(daily_kwh_needed / charge_rate_240, 2)
 
-        if charge_hours_110 <= charging_hours:
-            recommendation = "Standard outlet (110V) is sufficient for your needs."
+        if charge_hours_120 <= charging_hours:
+            recommendation = "Standard outlet (120V) is sufficient for your needs."
         else:
             recommendation = "Level 2 charger (240V) recommended for your daily driving habits."
 
@@ -212,7 +212,7 @@ class Level2ChargerCalculatorView(FormView):
             form=form,
             recommendation=recommendation,
             selected_ev=ev,
-            charge_hours_110=charge_hours_110,
+            charge_hours_120=charge_hours_120,
             charge_hours_240=charge_hours_240
         ))
 
@@ -246,6 +246,8 @@ class StationListView(TemplateView):
         context = super().get_context_data(**kwargs)
         form = StationSearchForm(self.request.GET or None)
         stations = []
+        source_station_count = 0
+        filters_active = False
         error_message = None
 
         if form.is_valid():
@@ -258,9 +260,31 @@ class StationListView(TemplateView):
                 location = form.cleaned_data['city_state']
             
             stations = NRELClient.get_stations(location)
+            source_station_count = len(stations)
             
             if not stations and location:
                 error_message = "No stations found or API unavailable. Please try again."
+
+            connector_type = form.cleaned_data.get('connector_type')
+            network = form.cleaned_data.get('network')
+            filters_active = bool(connector_type or network)
+
+            if connector_type:
+                selected_connector = connector_type.upper()
+                stations = [
+                    station for station in stations
+                    if selected_connector in {
+                        str(connector).upper()
+                        for connector in (station.get('ev_connector_types') or [])
+                    }
+                ]
+
+            if network:
+                selected_network = network.lower()
+                stations = [
+                    station for station in stations
+                    if selected_network in str(station.get('ev_network') or '').lower()
+                ]
             
             # Merge local status
             if stations:
@@ -301,6 +325,8 @@ class StationListView(TemplateView):
         context['page_obj'] = page_obj
         context['paginator'] = paginator
         context['stations'] = stations
+        context['source_station_count'] = source_station_count
+        context['filters_active'] = filters_active
         context['error_message'] = error_message
         return context
 

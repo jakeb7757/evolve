@@ -82,7 +82,7 @@
                             <option value="{{ value }}" {% if form.home_voltage.value == value %}selected{% endif %}>{{ label }}</option>
                             {% endfor %}
                         </select>
-                        <div class="form-text">110V is a standard wall outlet; 240V is a dedicated circuit.</div>
+                        <div class="form-text">120V is a standard wall outlet; 240V is a dedicated circuit.</div>
                         {{ form.home_voltage.errors }}
                     </div>
                 </div>
@@ -111,7 +111,7 @@
                             <strong>Daily energy</strong> = (daily miles ÷ EPA range) × battery capacity<br>
                             <strong>Charge time</strong> = daily energy ÷ charging rate
                         </div>
-                        <p><strong>Charging rates:</strong> We estimate 1.4 kW for a standard 110V outlet and 7.2 kW for a typical Level 2 setup.</p>
+                        <p><strong>Charging rates:</strong> We estimate 1.4 kW for a standard 120V outlet and 7.2 kW for a typical Level 2 setup.</p>
                         <p class="mb-0"><strong>Recommendation logic:</strong> If Level 1 cannot replace your typical daily use during the hours available, Level 2 is recommended. Actual rates vary by vehicle, charger, temperature, and electrical service.</p>
                     </div>
                 </div>
@@ -128,11 +128,11 @@
         <div class="insight-panel-body" role="status">
             <p class="result-vehicle">{{ selected_ev }}</p>
             <h3 class="text-white fs-4 mb-4">{{ recommendation }}</h3>
-            {% if charge_hours_110 and charge_hours_240 %}
+            {% if charge_hours_120 and charge_hours_240 %}
             <div class="result-grid mb-3">
                 <div class="result-stat">
                     <span>Standard outlet</span>
-                    <strong>{{ charge_hours_110 }} hrs</strong>
+                    <strong>{{ charge_hours_120 }} hrs</strong>
                 </div>
                 <div class="result-stat">
                     <span>Level 2</span>
@@ -162,7 +162,7 @@
             <ul class="insight-list">
                 <li>
                     <i class="bi bi-outlet"></i>
-                    <div><strong>Level 1 · 110V</strong><span>Uses a standard outlet. Slow, simple, and often enough for lighter driving.</span></div>
+                    <div><strong>Level 1 · 120V</strong><span>Uses a standard outlet. Slow, simple, and often enough for lighter driving.</span></div>
                 </li>
                 <li>
                     <i class="bi bi-lightning-charge"></i>

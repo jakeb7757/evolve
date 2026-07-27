@@ -37,7 +37,7 @@ class Level2CalculatorSubmission(models.Model):
     battery_capacity_kwh = models.DecimalField(max_digits=6, decimal_places=2)
     daily_miles = models.PositiveIntegerField()
     charging_hours = models.PositiveIntegerField()
-    home_voltage = models.CharField(max_length=10, choices=[('110', '110V'), ('240', '240V')])
+    home_voltage = models.CharField(max_length=10, choices=[('120', '120V'), ('240', '240V')])
     recommendation = models.CharField(max_length=255)
     submitted_at = models.DateTimeField(auto_now_add=True)
 

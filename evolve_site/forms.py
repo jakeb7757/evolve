@@ -57,7 +57,7 @@ class Level2ChargerForm(forms.Form):
     model = forms.ChoiceField(label="Model", choices=[])
     daily_miles = forms.IntegerField(label="Average Daily Miles", min_value=0)
     charging_hours = forms.IntegerField(label="Available Charging Hours per Night", min_value=1, max_value=24)
-    home_voltage = forms.ChoiceField(label="Home Outlet Voltage", choices=[('110', '110V'), ('240', '240V')])
+    home_voltage = forms.ChoiceField(label="Home Outlet Voltage", choices=[('120', '120V'), ('240', '240V')])
 
 class StationSearchForm(forms.Form):
     SEARCH_TYPE_CHOICES = [

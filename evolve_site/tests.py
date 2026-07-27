@@ -410,6 +410,63 @@ class StationListViewTest(TestCase):
         mock_get_stations.assert_called_once_with('Amarillo, TX')
 
     @patch('evolve_site.views.NRELClient.get_stations')
+    def test_connector_filter_applies_before_pagination(self, mock_get_stations):
+        """Connector filtering applies to every returned station, not one page."""
+        mock_get_stations.return_value = [
+            {
+                'id': index,
+                'station_name': f'Station {index}',
+                'ev_dc_fast_num': 4,
+                'ev_network': 'Tesla' if index < 11 else 'ChargePoint Network',
+                'ev_connector_types': ['TESLA'] if index < 11 else ['J1772COMBO'],
+            }
+            for index in range(15)
+        ]
+
+        response = self.client.get(reverse('evolve_site:station_list'), {
+            'search_type': 'zip',
+            'zip_code': '79101',
+            'connector_type': 'J1772COMBO',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['source_station_count'], 15)
+        self.assertEqual(response.context['paginator'].count, 4)
+        self.assertEqual(len(response.context['page_obj']), 4)
+        self.assertTrue(all(
+            'J1772COMBO' in station['ev_connector_types']
+            for station in response.context['stations']
+        ))
+
+    @patch('evolve_site.views.NRELClient.get_stations')
+    def test_network_filter_applies_before_pagination(self, mock_get_stations):
+        """Network filtering applies to the complete API result set."""
+        mock_get_stations.return_value = [
+            {
+                'id': index,
+                'station_name': f'Station {index}',
+                'ev_dc_fast_num': 4,
+                'ev_network': 'Tesla' if index < 12 else 'eVgo Network',
+                'ev_connector_types': ['TESLA'],
+            }
+            for index in range(15)
+        ]
+
+        response = self.client.get(reverse('evolve_site:station_list'), {
+            'search_type': 'city',
+            'city_state': 'Amarillo, TX',
+            'network': 'EVgo Network',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['source_station_count'], 15)
+        self.assertEqual(response.context['paginator'].count, 3)
+        self.assertTrue(all(
+            station['ev_network'] == 'eVgo Network'
+            for station in response.context['stations']
+        ))
+
+    @patch('evolve_site.views.NRELClient.get_stations')
     def test_station_list_handles_api_failure(self, mock_get_stations):
         """
         Tests that the view displays a friendly error when API fails (AC2).
@@ -621,3 +678,5 @@ class CalculatorMethodologyTest(TestCase):
         response = self.client.get(reverse('evolve_site:level2_calculator'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'How We Calculate')
+        self.assertContains(response, '120V')
+        self.assertNotContains(response, '110V')

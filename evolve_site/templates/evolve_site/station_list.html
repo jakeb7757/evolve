@@ -61,33 +61,29 @@
 
 {% if paginator.count %}
 <div id="results-content">
-    <div class="results-toolbar" data-reveal>
+    <form method="get" class="results-toolbar" id="station-filter-form" data-reveal>
+        <input type="hidden" name="search_type" value="{{ form.search_type.value|default:'zip' }}">
+        {% if form.search_type.value == 'city' %}
+        <input type="hidden" name="city_state" value="{{ form.city_state.value|default:'' }}">
+        {% else %}
+        <input type="hidden" name="zip_code" value="{{ form.zip_code.value|default:'' }}">
+        {% endif %}
         <p class="result-count" id="station-count">
             <strong>{{ paginator.count }} station{{ paginator.count|pluralize }}</strong>
+            {% if filters_active %}
+            Matching {{ source_station_count }} returned ·
+            {% endif %}
             Page {{ page_obj.number }} of {{ paginator.num_pages }}
         </p>
         <div>
-            <label for="connector-filter">Connector</label>
-            <select id="connector-filter" class="form-select">
-                <option value="">All connectors</option>
-                <option value="CHADEMO">CHAdeMO</option>
-                <option value="J1772COMBO">CCS</option>
-                <option value="TESLA">Tesla / NACS</option>
-            </select>
+            <label for="{{ form.connector_type.id_for_label }}">Connector</label>
+            {{ form.connector_type }}
         </div>
         <div>
-            <label for="network-filter">Network</label>
-            <select id="network-filter" class="form-select">
-                <option value="">All networks</option>
-                <option value="Tesla">Tesla Supercharger</option>
-                <option value="Electrify America">Electrify America</option>
-                <option value="EVgo">EVgo</option>
-                <option value="ChargePoint">ChargePoint</option>
-                <option value="Blink">Blink</option>
-                <option value="Francis">Francis Energy</option>
-            </select>
+            <label for="{{ form.network.id_for_label }}">Network</label>
+            {{ form.network }}
         </div>
-    </div>
+    </form>
 
     <div class="station-list" id="station-list">
         {% for station in page_obj %}
@@ -191,6 +187,16 @@
     </nav>
     {% endif %}
 </div>
+{% elif filters_active %}
+<div class="empty-state" data-reveal>
+    <div class="empty-state-icon"><i class="bi bi-funnel"></i></div>
+    <h2>No stations match those filters.</h2>
+    <p class="mb-3">Try another connector or network from the {{ source_station_count }} stations returned.</p>
+    <a class="btn btn-outline-dark"
+       href="?search_type={{ form.search_type.value|default:'zip' }}&{% if form.search_type.value == 'city' %}city_state={{ form.city_state.value|urlencode }}{% else %}zip_code={{ form.zip_code.value|urlencode }}{% endif %}">
+        Clear filters
+    </a>
+</div>
 {% elif request.GET.zip_code or request.GET.city_state %}
 <div class="empty-state" data-reveal>
     <div class="empty-state-icon"><i class="bi bi-search"></i></div>
@@ -285,12 +291,12 @@ $(function() {
         });
     });
 
-    $('#connector-filter').select2({
+    $('#id_connector_type').select2({
         theme: 'bootstrap-5',
         minimumResultsForSearch: -1,
         width: '100%'
     });
-    $('#network-filter').select2({
+    $('#id_network').select2({
         theme: 'bootstrap-5',
         allowClear: true,
         width: '100%'
@@ -308,27 +314,9 @@ $(function() {
     toggleSearchFields();
     $('input[name="search_type"]').on('change', toggleSearchFields);
 
-    function filterStations() {
-        const selectedConnector = String($('#connector-filter').val() || '').toUpperCase();
-        const selectedNetwork = String($('#network-filter').val() || '').toLowerCase();
-        let visibleCount = 0;
-
-        $('.station-item').each(function() {
-            const connectors = String($(this).data('connectors') || '').toUpperCase();
-            const network = String($(this).data('network') || '').toLowerCase();
-            const visible = (!selectedConnector || connectors.includes(selectedConnector)) &&
-                            (!selectedNetwork || network.includes(selectedNetwork));
-            $(this).toggle(visible);
-            if (visible) visibleCount += 1;
-        });
-
-        if ($('#station-count').length) {
-            const plural = visibleCount === 1 ? '' : 's';
-            $('#station-count').html(`<strong>${visibleCount} station${plural} on this page</strong>{{ paginator.count }} total in this search`);
-        }
-    }
-
-    $('#connector-filter, #network-filter').on('change', filterStations);
+    $('#id_connector_type, #id_network').on('change', function() {
+        document.getElementById('station-filter-form').requestSubmit();
+    });
 
     $('#search-form').on('submit', function() {
         $('#search-btn').prop('disabled', true);
