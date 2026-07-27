@@ -15,6 +15,7 @@ urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
 
     # Calculator
+    path('fit-report/', views.ev_fit_report, name='fit_report'),
     path('calculator/', fuel_savings_calculator, name='calculator'),
     path('level2-calculator/', Level2ChargerCalculatorView.as_view(), name='level2_calculator'),
 

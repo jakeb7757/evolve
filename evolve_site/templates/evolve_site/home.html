@@ -15,8 +15,8 @@
                     and find fast chargers near you—all in one place.
                 </p>
                 <div class="hero-actions">
-                    <a class="btn btn-lime" href="{% url 'evolve_site:calculator' %}">
-                        Calculate my savings <i class="bi bi-arrow-up-right ms-1"></i>
+                    <a class="btn btn-lime" href="{% url 'evolve_site:fit_report' %}">
+                        Build my EV fit report <i class="bi bi-arrow-up-right ms-1"></i>
                     </a>
                     <a class="btn btn-ghost" href="{% url 'evolve_site:station_list' %}">
                         Find a charger
@@ -92,11 +92,22 @@
         <div class="container">
             <div class="section-heading" data-reveal>
                 <div>
-                    <p class="eyebrow">Three practical tools</p>
-                    <h2>From “what if?” to ready to drive.</h2>
+                    <p class="eyebrow">One complete report + three focused tools</p>
+                    <h2>Start with the whole picture.</h2>
                 </div>
-                <p>Start wherever your biggest question is. Each tool turns a fuzzy EV decision into a useful next step.</p>
+                <p>See whether one EV fits your costs, routine, home, and location—or jump straight to the question that matters most.</p>
             </div>
+
+            <a class="fit-feature-card" href="{% url 'evolve_site:fit_report' %}" data-reveal>
+                <div>
+                    <span class="tool-number">00 / EV FIT REPORT</span>
+                    <h3>One EV. Four practical answers.</h3>
+                    <p>Bring your driving habits and an EV you’re considering. Get a personalized verdict across savings, range, home charging, and nearby fast charging.</p>
+                </div>
+                <span class="fit-feature-action">
+                    Build my report <i class="bi bi-arrow-up-right"></i>
+                </span>
+            </a>
 
             <div class="tool-grid">
                 <a class="tool-card" href="{% url 'evolve_site:calculator' %}" data-reveal>

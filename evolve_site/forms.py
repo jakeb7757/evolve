@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from decimal import Decimal
 
 
 class FuelSavingsForm(forms.Form):
@@ -56,6 +57,89 @@ class Level2ChargerForm(forms.Form):
     vehicle_id = forms.ChoiceField(label="Model", choices=[])
     daily_miles = forms.IntegerField(label="Average Daily Miles", min_value=0)
     charging_hours = forms.IntegerField(label="Available Charging Hours per Night", min_value=1, max_value=24)
+
+
+class EVFitReportForm(forms.Form):
+    location = forms.CharField(
+        label="ZIP code or city",
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g. 73102 or Oklahoma City, OK',
+        }),
+    )
+    mpg = forms.DecimalField(
+        label="Current vehicle MPG",
+        min_value=Decimal('0.1'),
+        max_digits=6,
+        decimal_places=1,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'step': '0.1',
+            'placeholder': 'e.g. 28',
+        }),
+    )
+    annual_miles = forms.IntegerField(
+        label="Annual miles",
+        min_value=1,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g. 12,000',
+        }),
+    )
+    gas_price = forms.DecimalField(
+        label="Gas price ($/gallon)",
+        min_value=Decimal('0.01'),
+        max_digits=6,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'step': '0.01',
+            'placeholder': 'e.g. 3.29',
+        }),
+    )
+    electricity_cost = forms.DecimalField(
+        label="Electricity cost ($/kWh)",
+        min_value=Decimal('0.01'),
+        max_digits=6,
+        decimal_places=3,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'step': '0.001',
+            'placeholder': 'e.g. 0.14',
+        }),
+    )
+    daily_miles = forms.IntegerField(
+        label="Typical daily miles",
+        min_value=1,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g. 36',
+        }),
+    )
+    charging_hours = forms.IntegerField(
+        label="Hours parked overnight",
+        min_value=1,
+        max_value=24,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g. 10',
+        }),
+    )
+    reserve_percent = forms.IntegerField(
+        label="Range reserve",
+        min_value=0,
+        max_value=50,
+        initial=20,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'step': '5',
+        }),
+    )
+    model_year = forms.ChoiceField(label="Year", choices=[])
+    manufacturer = forms.ChoiceField(label="Make", choices=[])
+    vehicle_id = forms.ChoiceField(label="Model", choices=[])
+
 
 class StationSearchForm(forms.Form):
     SEARCH_TYPE_CHOICES = [

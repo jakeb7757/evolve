@@ -10,6 +10,7 @@ from io import StringIO
 from unittest.mock import patch, MagicMock
 from requests.exceptions import RequestException, Timeout
 from evolve_site.services import NRELClient
+from evolve_site.fit_report import build_fit_report
 from evolve_site.models import FuelEconomyVehicle, StationStatus
 
 
@@ -372,6 +373,121 @@ class NRELClientTest(TestCase):
         }
         power = NRELClient.extract_max_power(station)
         self.assertIsNone(power)
+
+
+class EVFitReportTest(TestCase):
+    def setUp(self):
+        self.vehicle = FuelEconomyVehicle.objects.create(
+            fueleconomy_id=50001,
+            model_year=2026,
+            manufacturer='Example Motors',
+            model='Long Range',
+            drivetrain='AWD',
+            epa_range_miles=300,
+            combined_kwh_per_100_miles=Decimal('30.00'),
+            charge_hours_120v=Decimal('40.00'),
+            charge_hours_240v=Decimal('8.00'),
+            is_active=True,
+        )
+        self.query = {
+            'location': 'Oklahoma City, OK',
+            'mpg': '30.0',
+            'annual_miles': '12000',
+            'gas_price': '3.30',
+            'electricity_cost': '0.15',
+            'daily_miles': '40',
+            'charging_hours': '10',
+            'reserve_percent': '20',
+            'model_year': '2026',
+            'manufacturer': 'Example Motors',
+            'vehicle_id': str(self.vehicle.fueleconomy_id),
+        }
+
+    @patch('evolve_site.views.NRELClient.get_stations')
+    def test_fit_report_combines_all_four_fit_areas(self, mock_get_stations):
+        mock_get_stations.return_value = [
+            {
+                'id': 100,
+                'station_name': 'Far Fast Charger',
+                'ev_network': 'IONNA',
+                'distance': 12.4,
+                'max_power_kw': 350,
+            },
+            {
+                'id': 101,
+                'station_name': 'Closest Fast Charger',
+                'ev_network': 'Rivian Adventure Network',
+                'distance': 4.2,
+                'max_power_kw': 300,
+            },
+        ]
+
+        response = self.client.get(
+            reverse('evolve_site:fit_report'),
+            self.query,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        report = response.context['report']
+        self.assertEqual(report['verdict']['label'], 'Excellent fit')
+        self.assertEqual(report['annual_gas_cost'], Decimal('1320.00'))
+        self.assertEqual(
+            report['annual_electricity_cost'],
+            Decimal('540.00'),
+        )
+        self.assertEqual(report['monthly_savings'], Decimal('65.00'))
+        self.assertEqual(report['usable_range'], Decimal('240'))
+        self.assertTrue(report['level_1_fits'])
+        self.assertEqual(
+            report['closest_station']['station_name'],
+            'Closest Fast Charger',
+        )
+        self.assertEqual(
+            report['networks'],
+            ['IONNA', 'Rivian Adventure Network'],
+        )
+        self.assertContains(response, 'Evolve EV Fit Report')
+        self.assertContains(response, 'Copy link')
+        mock_get_stations.assert_called_once_with('Oklahoma City, OK')
+
+    def test_fit_report_flags_range_that_misses_reserve(self):
+        cleaned_data = {
+            'location': '73102',
+            'mpg': Decimal('30'),
+            'annual_miles': 12000,
+            'gas_price': Decimal('3.30'),
+            'electricity_cost': Decimal('0.15'),
+            'daily_miles': 250,
+            'charging_hours': 12,
+            'reserve_percent': 20,
+        }
+
+        report = build_fit_report(self.vehicle, cleaned_data, [])
+
+        self.assertEqual(report['verdict']['label'], 'Look for more range')
+        self.assertFalse(report['range_fits'])
+        self.assertEqual(report['range_headroom'], Decimal('-10'))
+        self.assertEqual(report['station_search_type'], 'zip')
+        self.assertEqual(report['station_search_parameter'], 'zip_code')
+
+    @patch('evolve_site.views.NRELClient.get_stations')
+    def test_invalid_fit_report_does_not_call_station_api(self, mock_get_stations):
+        invalid_query = self.query.copy()
+        invalid_query['daily_miles'] = '0'
+
+        response = self.client.get(
+            reverse('evolve_site:fit_report'),
+            invalid_query,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.context['report'])
+        self.assertFormError(
+            response.context['form'],
+            'daily_miles',
+            'Ensure this value is greater than or equal to 1.',
+        )
+        mock_get_stations.assert_not_called()
 
 
 class StationListViewTest(TestCase):

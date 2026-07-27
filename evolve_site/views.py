@@ -1,7 +1,14 @@
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import render
 from django.http import JsonResponse
-from .forms import FuelSavingsForm, RegisterForm, Level2ChargerForm, StationSearchForm
+from .forms import (
+    EVFitReportForm,
+    FuelSavingsForm,
+    Level2ChargerForm,
+    RegisterForm,
+    StationSearchForm,
+)
+from .fit_report import build_fit_report
 from .models import FuelEconomyVehicle, Level2CalculatorSubmission, StationStatus
 from .services import NRELClient
 from decimal import Decimal
@@ -180,6 +187,44 @@ def fuel_savings_calculator(request):
     context['form'] = form
     context['results'] = results
     return render(request, 'evolve_site/calculator.html', context)
+
+
+def ev_fit_report(request):
+    """Build a shareable EV fit report from one combined set of inputs."""
+    form = EVFitReportForm(request.GET or None)
+    populate_vehicle_form_choices(
+        form,
+        request.GET.get("model_year"),
+        request.GET.get("manufacturer"),
+    )
+    report = None
+
+    if request.GET and form.is_valid():
+        try:
+            vehicle = FuelEconomyVehicle.objects.get(
+                fueleconomy_id=form.cleaned_data["vehicle_id"],
+                model_year=form.cleaned_data["model_year"],
+                manufacturer=form.cleaned_data["manufacturer"],
+                is_active=True,
+            )
+        except FuelEconomyVehicle.DoesNotExist:
+            form.add_error(
+                "vehicle_id",
+                "The selected electric vehicle could not be found.",
+            )
+        else:
+            stations = NRELClient.get_stations(form.cleaned_data["location"])
+            report = build_fit_report(vehicle, form.cleaned_data, stations)
+
+    return render(
+        request,
+        "evolve_site/fit_report.html",
+        {
+            "form": form,
+            "report": report,
+        },
+    )
+
 
 class HomeView(TemplateView):
     """

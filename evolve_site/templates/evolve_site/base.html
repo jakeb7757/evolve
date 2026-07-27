@@ -35,6 +35,10 @@
             <div class="collapse navbar-collapse" id="primaryNav">
                 <ul class="navbar-nav nav-pills-custom mx-auto">
                     <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'fit_report' %}active{% endif %}"
+                           href="{% url 'evolve_site:fit_report' %}">Fit report</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'calculator' %}active{% endif %}"
                            href="{% url 'evolve_site:calculator' %}">Savings</a>
                     </li>

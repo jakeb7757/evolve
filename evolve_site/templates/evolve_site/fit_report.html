@@ -1,0 +1,360 @@
+{% extends 'evolve_site/base.html' %}
+{% load static %}
+
+{% block title %}EV Fit Report — Evolve{% endblock %}
+
+{% block content %}
+<header class="page-heading fit-page-heading" data-reveal>
+    <p class="page-kicker">The complete picture</p>
+    <h1>Would this EV fit your life?</h1>
+    <p>Bring one EV and a few details about your driving. We’ll connect the costs, range, home charging, and nearby fast-charging coverage in one report.</p>
+</header>
+
+<div class="fit-workspace">
+    <form method="get" class="panel form-panel fit-form-panel no-print" data-reveal>
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <section class="form-section">
+            <div class="form-section-heading">
+                <span class="step-number">01</span>
+                <h2>Choose the EV you’re considering</h2>
+            </div>
+            <div class="field-grid three">
+                <div>
+                    <label for="id_model_year">{{ form.model_year.label }}</label>
+                    <select name="model_year" id="id_model_year" class="form-select" required>
+                        {% for value, label in form.model_year.field.choices %}
+                        <option value="{{ value }}" {% if form.model_year.value == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    {{ form.model_year.errors }}
+                </div>
+                <div>
+                    <label for="id_manufacturer">{{ form.manufacturer.label }}</label>
+                    <select name="manufacturer" id="id_manufacturer" class="form-select"
+                            required {% if not form.manufacturer.value %}disabled{% endif %}>
+                        {% for value, label in form.manufacturer.field.choices %}
+                        <option value="{{ value }}" {% if form.manufacturer.value == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    {{ form.manufacturer.errors }}
+                </div>
+                <div>
+                    <label for="id_vehicle_id">{{ form.vehicle_id.label }}</label>
+                    <select name="vehicle_id" id="id_vehicle_id" class="form-select"
+                            required {% if not form.vehicle_id.value %}disabled{% endif %}>
+                        {% for value, label in form.vehicle_id.field.choices %}
+                        <option value="{{ value }}" {% if form.vehicle_id.value == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    {{ form.vehicle_id.errors }}
+                </div>
+            </div>
+        </section>
+
+        <section class="form-section">
+            <div class="form-section-heading">
+                <span class="step-number">02</span>
+                <h2>Your driving and energy costs</h2>
+            </div>
+            <div class="field-grid">
+                <div>
+                    <label for="{{ form.mpg.id_for_label }}">{{ form.mpg.label }}</label>
+                    {{ form.mpg }}
+                    <div class="form-text">The combined MPG of the gas vehicle you drive now.</div>
+                    {{ form.mpg.errors }}
+                </div>
+                <div>
+                    <label for="{{ form.annual_miles.id_for_label }}">{{ form.annual_miles.label }}</label>
+                    {{ form.annual_miles }}
+                    <div class="form-text">Your best estimate for a full year of driving.</div>
+                    {{ form.annual_miles.errors }}
+                </div>
+                <div>
+                    <label for="{{ form.gas_price.id_for_label }}">{{ form.gas_price.label }}</label>
+                    {{ form.gas_price }}
+                    <div class="form-text">Use the price you typically pay, not a national average.</div>
+                    {{ form.gas_price.errors }}
+                </div>
+                <div>
+                    <label for="{{ form.electricity_cost.id_for_label }}">{{ form.electricity_cost.label }}</label>
+                    {{ form.electricity_cost }}
+                    <div class="form-text">Find your per-kWh rate on a recent utility bill.</div>
+                    {{ form.electricity_cost.errors }}
+                </div>
+            </div>
+        </section>
+
+        <section class="form-section">
+            <div class="form-section-heading">
+                <span class="step-number">03</span>
+                <h2>Your everyday routine</h2>
+            </div>
+            <div class="field-grid">
+                <div>
+                    <label for="{{ form.daily_miles.id_for_label }}">{{ form.daily_miles.label }}</label>
+                    {{ form.daily_miles }}
+                    <div class="form-text">Include the round trip plus normal errands.</div>
+                    {{ form.daily_miles.errors }}
+                </div>
+                <div>
+                    <label for="{{ form.charging_hours.id_for_label }}">{{ form.charging_hours.label }}</label>
+                    {{ form.charging_hours }}
+                    <div class="form-text">How long the car can normally stay plugged in.</div>
+                    {{ form.charging_hours.errors }}
+                </div>
+                <div>
+                    <label for="{{ form.reserve_percent.id_for_label }}">{{ form.reserve_percent.label }} (%)</label>
+                    {{ form.reserve_percent }}
+                    <div class="form-text">We suggest 20% for weather, detours, and peace of mind.</div>
+                    {{ form.reserve_percent.errors }}
+                </div>
+                <div>
+                    <label for="{{ form.location.id_for_label }}">{{ form.location.label }}</label>
+                    {{ form.location }}
+                    <div class="form-text">Used only to find public fast charging within 25 miles.</div>
+                    {{ form.location.errors }}
+                </div>
+            </div>
+        </section>
+
+        <div class="form-submit">
+            <p>Your result uses EPA efficiency and range, the prices you enter, and public chargers rated at least 80 kW.</p>
+            <button type="submit" class="btn btn-primary">
+                Build my fit report <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+        </div>
+    </form>
+
+    <aside class="panel fit-guide {% if report %}fit-guide-result fit-tone-{{ report.verdict.tone }}{% endif %}" data-reveal>
+        {% if report %}
+        <p class="eyebrow">Your EV fit</p>
+        <span class="fit-verdict-pill">{{ report.verdict.label }}</span>
+        <h2>{{ report.vehicle }}</h2>
+        <p>{{ report.verdict.summary }}</p>
+        <div class="fit-guide-stats">
+            <div>
+                <span>Typical day</span>
+                <strong>{{ form.cleaned_data.daily_miles }} miles</strong>
+            </div>
+            <div>
+                <span>Location</span>
+                <strong>{{ report.location }}</strong>
+            </div>
+        </div>
+        <a href="#fit-report" class="btn btn-lime">Read the full report</a>
+        {% else %}
+        <p class="eyebrow">One report, four answers</p>
+        <h2>A practical verdict—not a generic EV score.</h2>
+        <ul class="fit-guide-list">
+            <li><i class="bi bi-wallet2"></i><span><strong>Cost</strong>Gas versus home electricity</span></li>
+            <li><i class="bi bi-speedometer2"></i><span><strong>Range</strong>Your daily miles plus a reserve</span></li>
+            <li><i class="bi bi-house-bolt"></i><span><strong>Home</strong>Whether Level 1 can keep up</span></li>
+            <li><i class="bi bi-geo-alt"></i><span><strong>Road</strong>Nearby public 80+ kW charging</span></li>
+        </ul>
+        {% endif %}
+    </aside>
+</div>
+
+{% if report %}
+<section class="fit-report" id="fit-report">
+    <div class="fit-report-hero fit-tone-{{ report.verdict.tone }}" data-reveal>
+        <div class="fit-report-title">
+            <div>
+                <p class="eyebrow">Evolve EV Fit Report</p>
+                <span class="fit-verdict-pill">{{ report.verdict.label }}</span>
+                <h2>{{ report.vehicle }}</h2>
+                <p>{{ report.verdict.summary }}</p>
+            </div>
+            <div class="fit-report-actions no-print">
+                <button type="button" class="btn btn-outline-dark" id="copy-report-link">
+                    <i class="bi bi-link-45deg me-1"></i>Copy link
+                </button>
+                <button type="button" class="btn btn-primary" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i>Print
+                </button>
+                <span id="copy-report-status" class="visually-hidden" role="status"></span>
+            </div>
+        </div>
+
+        <div class="fit-snapshot-grid">
+            <div class="fit-snapshot">
+                <span>Monthly difference</span>
+                <strong>{% if report.saves_money %}Save {% else %}Spend {% endif %}${{ report.monthly_difference }}</strong>
+                <small>Based on {{ form.cleaned_data.annual_miles }} miles per year</small>
+            </div>
+            <div class="fit-snapshot">
+                <span>Buffered range</span>
+                <strong>{% if report.usable_range %}{{ report.usable_range }} mi{% else %}Not published{% endif %}</strong>
+                <small>{{ report.reserve_percent }}% held in reserve</small>
+            </div>
+            <div class="fit-snapshot">
+                <span>Home charging</span>
+                <strong>{{ report.charging_label }}</strong>
+                <small>{{ report.daily_energy }} kWh used on a typical day</small>
+            </div>
+            <div class="fit-snapshot">
+                <span>Road charging</span>
+                <strong>{{ report.station_count }} station{{ report.station_count|pluralize }}</strong>
+                <small>Public 80+ kW stations within 25 miles</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="fit-report-grid">
+        <article class="panel fit-report-card" data-reveal>
+            <div class="fit-card-icon"><i class="bi bi-wallet2"></i></div>
+            <p class="eyebrow">01 / Ownership</p>
+            <h3>{% if report.saves_money %}Electric comes out ahead.{% else %}Electric costs more on energy alone.{% endif %}</h3>
+            <p>
+                {% if report.saves_money %}
+                Your estimate saves about <strong>${{ report.annual_savings }} per year</strong> and <strong>${{ report.five_year_savings }}</strong> over five years.
+                {% else %}
+                At the rates entered, electricity costs about <strong>${{ report.monthly_difference }} more per month</strong> than gasoline.
+                {% endif %}
+            </p>
+            <dl class="fit-detail-list">
+                <div><dt>Gas each year</dt><dd>${{ report.annual_gas_cost }}</dd></div>
+                <div><dt>Electricity each year</dt><dd>${{ report.annual_electricity_cost }}</dd></div>
+                <div><dt>EV energy each year</dt><dd>{{ report.annual_ev_energy }} kWh</dd></div>
+            </dl>
+        </article>
+
+        <article class="panel fit-report-card" data-reveal>
+            <div class="fit-card-icon"><i class="bi bi-speedometer2"></i></div>
+            <p class="eyebrow">02 / Range</p>
+            <h3>{{ report.range_label }}</h3>
+            <p>{{ report.range_detail }}</p>
+            <dl class="fit-detail-list">
+                <div><dt>EPA range</dt><dd>{% if report.epa_range %}{{ report.epa_range }} mi{% else %}Unavailable{% endif %}</dd></div>
+                <div><dt>Buffered range</dt><dd>{% if report.usable_range %}{{ report.usable_range }} mi{% else %}Unavailable{% endif %}</dd></div>
+                <div><dt>Typical days per charge</dt><dd>{% if report.range_days %}{{ report.range_days }}{% else %}Unavailable{% endif %}</dd></div>
+            </dl>
+        </article>
+
+        <article class="panel fit-report-card" data-reveal>
+            <div class="fit-card-icon"><i class="bi bi-house-bolt"></i></div>
+            <p class="eyebrow">03 / Home charging</p>
+            <h3>{{ report.charging_label }}</h3>
+            <p>{{ report.charging_detail }}</p>
+            <dl class="fit-detail-list">
+                <div><dt>120V Level 1</dt><dd>{{ report.level_1_hours }} hours</dd></div>
+                <div><dt>240V Level 2</dt><dd>{{ report.level_2_hours }} hours</dd></div>
+                <div><dt>Your charging window</dt><dd>{{ form.cleaned_data.charging_hours }} hours</dd></div>
+            </dl>
+        </article>
+
+        <article class="panel fit-report-card" data-reveal>
+            <div class="fit-card-icon"><i class="bi bi-geo-alt"></i></div>
+            <p class="eyebrow">04 / Road charging</p>
+            <h3>{{ report.coverage_label }}</h3>
+            <p>{{ report.coverage_detail }}</p>
+            <dl class="fit-detail-list">
+                {% if report.closest_station %}
+                <div><dt>Closest</dt><dd>{{ report.closest_station.station_name }}</dd></div>
+                <div><dt>Maximum power</dt><dd>{% if report.closest_station.max_power_kw %}{{ report.closest_station.max_power_kw|floatformat:0 }} kW{% else %}Not listed{% endif %}</dd></div>
+                {% endif %}
+                <div><dt>Networks nearby</dt><dd>{% if report.networks %}{{ report.networks|join:", " }}{% else %}None returned{% endif %}</dd></div>
+            </dl>
+            <a class="fit-card-link no-print"
+               href="{% url 'evolve_site:station_list' %}?search_type={{ report.station_search_type }}&amp;{{ report.station_search_parameter }}={{ report.location|urlencode }}">
+                Explore these stations <i class="bi bi-arrow-up-right"></i>
+            </a>
+        </article>
+    </div>
+
+    <div class="methodology fit-methodology no-print" data-reveal>
+        <div class="accordion" id="fitMethodologyAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#fitMethodology" aria-expanded="false" aria-controls="fitMethodology">
+                        How this report works
+                    </button>
+                </h2>
+                <div id="fitMethodology" class="accordion-collapse collapse" data-bs-parent="#fitMethodologyAccordion">
+                    <div class="accordion-body">
+                        <p><strong>Cost:</strong> Gas cost is annual miles ÷ MPG × gas price. Electric cost is annual miles × EPA kWh/100 mi ÷ 100 × your electricity rate.</p>
+                        <p><strong>Home charging:</strong> Daily energy is compared with 1.4 kW Level 1 and 7.2 kW Level 2 charging during the hours entered.</p>
+                        <p><strong>Range:</strong> The reserve you selected is removed from the published EPA range before comparison with your typical daily mileage.</p>
+                        <p class="mb-0"><strong>Road charging:</strong> Evolve searches for available, public DC fast-charging locations with at least one port rated 80 kW or higher within 25 miles. This is planning guidance, not live port availability.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+$(function() {
+    const yearSelect = $('#id_model_year');
+    const makeSelect = $('#id_manufacturer');
+    const modelSelect = $('#id_vehicle_id');
+
+    [yearSelect, makeSelect, modelSelect].forEach(function(select) {
+        select.select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            allowClear: true,
+            placeholder: select.attr('id') === 'id_model_year' ? 'Choose a year' :
+                         select.attr('id') === 'id_manufacturer' ? 'Choose a make' : 'Choose a model'
+        });
+    });
+
+    function setOptions(select, options, placeholder) {
+        select.empty().append(new Option(placeholder, ''));
+        options.forEach(function(option) {
+            const value = typeof option === 'string' ? option : option.id;
+            const label = typeof option === 'string' ? option : option.label;
+            select.append(new Option(label, value));
+        });
+        select.prop('disabled', false).trigger('change.select2');
+    }
+
+    yearSelect.on('change', function() {
+        const year = this.value;
+        makeSelect.empty().append(new Option(year ? 'Loading makes…' : 'Choose a year first', ''))
+            .prop('disabled', true).trigger('change.select2');
+        modelSelect.empty().append(new Option('Choose a make first', ''))
+            .prop('disabled', true).trigger('change.select2');
+        if (year) {
+            fetch(`/api/manufacturers/?year=${encodeURIComponent(year)}`)
+                .then(response => response.json())
+                .then(data => setOptions(makeSelect, data.manufacturers, 'Choose a make'));
+        }
+    });
+
+    makeSelect.on('change', function() {
+        const year = yearSelect.val();
+        const make = this.value;
+        modelSelect.empty().append(new Option(make ? 'Loading models…' : 'Choose a make first', ''))
+            .prop('disabled', true).trigger('change.select2');
+        if (year && make) {
+            fetch(`/api/models/?year=${encodeURIComponent(year)}&manufacturer=${encodeURIComponent(make)}`)
+                .then(response => response.json())
+                .then(data => setOptions(modelSelect, data.models, 'Choose a model'));
+        }
+    });
+
+    const copyButton = document.getElementById('copy-report-link');
+    if (copyButton) {
+        copyButton.addEventListener('click', async function() {
+            const status = document.getElementById('copy-report-status');
+            try {
+                await navigator.clipboard.writeText(window.location.href);
+                this.innerHTML = '<i class="bi bi-check2 me-1"></i>Copied';
+                status.textContent = 'Report link copied';
+            } catch (error) {
+                window.prompt('Copy this report link:', window.location.href);
+                status.textContent = 'Copy the report link from the dialog';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -588,6 +588,80 @@ p {
     gap: 1rem;
 }
 
+.fit-feature-card {
+    position: relative;
+    display: flex;
+    min-height: 300px;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
+    margin-bottom: 1rem;
+    padding: clamp(2rem, 5vw, 4rem);
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--ink);
+    color: var(--white);
+    text-decoration: none;
+    transition: transform .3s ease, box-shadow .3s ease;
+}
+
+.fit-feature-card::before {
+    position: absolute;
+    top: -10rem;
+    right: -4rem;
+    width: 26rem;
+    height: 26rem;
+    border: 1px solid rgba(201, 245, 90, .16);
+    border-radius: 50%;
+    box-shadow: 0 0 0 4rem rgba(201, 245, 90, .025), 0 0 0 8rem rgba(201, 245, 90, .018);
+    content: "";
+}
+
+.fit-feature-card:hover {
+    color: var(--white);
+    transform: translateY(-7px);
+    box-shadow: var(--shadow-lg);
+}
+
+.fit-feature-card > div,
+.fit-feature-action {
+    position: relative;
+    z-index: 1;
+}
+
+.fit-feature-card .tool-number {
+    color: var(--lime);
+}
+
+.fit-feature-card h3 {
+    max-width: 740px;
+    margin: 3rem 0 .8rem;
+    color: var(--white);
+    font-size: clamp(2.3rem, 5vw, 4.5rem);
+    font-weight: 800;
+    line-height: .98;
+}
+
+.fit-feature-card p {
+    max-width: 680px;
+    margin: 0;
+    color: #aeb9b3;
+    line-height: 1.7;
+}
+
+.fit-feature-action {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: .45rem;
+    padding: .85rem 1rem;
+    border-radius: 100px;
+    background: var(--lime);
+    color: var(--ink);
+    font-size: .82rem;
+    font-weight: 800;
+}
+
 .tool-card {
     position: relative;
     display: flex;
@@ -980,6 +1054,361 @@ label {
     border-radius: 12px;
     background: var(--white);
     color: var(--ink-soft);
+}
+
+/* EV fit report */
+.fit-page-heading {
+    max-width: 900px;
+}
+
+.fit-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(320px, .55fr);
+    align-items: start;
+    gap: 1.2rem;
+}
+
+.fit-form-panel {
+    padding: 2rem;
+}
+
+.fit-guide {
+    position: sticky;
+    top: 6.4rem;
+    padding: 2rem;
+    overflow: hidden;
+    background: var(--ink);
+    color: var(--white);
+}
+
+.fit-guide::after {
+    position: absolute;
+    right: -5rem;
+    bottom: -5rem;
+    width: 13rem;
+    height: 13rem;
+    border: 1px solid rgba(201, 245, 90, .18);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2.5rem rgba(201, 245, 90, .025);
+    content: "";
+}
+
+.fit-guide .eyebrow {
+    position: relative;
+    z-index: 1;
+    color: var(--lime);
+}
+
+.fit-guide h2 {
+    position: relative;
+    z-index: 1;
+    margin: .6rem 0 1rem;
+    color: var(--white);
+    font-size: clamp(1.8rem, 4vw, 2.7rem);
+    font-weight: 800;
+    line-height: 1.05;
+}
+
+.fit-guide > p:not(.eyebrow) {
+    position: relative;
+    z-index: 1;
+    color: #b8c1bc;
+    line-height: 1.65;
+}
+
+.fit-guide-list {
+    position: relative;
+    z-index: 1;
+    margin: 1.4rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fit-guide-list li {
+    display: grid;
+    grid-template-columns: 2.4rem 1fr;
+    gap: .75rem;
+    align-items: center;
+    padding: .85rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, .1);
+}
+
+.fit-guide-list li:last-child {
+    border-bottom: 0;
+}
+
+.fit-guide-list i {
+    display: grid;
+    width: 2.35rem;
+    height: 2.35rem;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(201, 245, 90, .12);
+    color: var(--lime);
+}
+
+.fit-guide-list strong,
+.fit-guide-list span {
+    display: block;
+}
+
+.fit-guide-list strong {
+    color: var(--white);
+    font-size: .88rem;
+}
+
+.fit-guide-list span {
+    color: #9eaaa3;
+    font-size: .76rem;
+}
+
+.fit-guide-result .fit-verdict-pill {
+    margin-bottom: .3rem;
+}
+
+.fit-guide-stats {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: .5rem;
+    margin: 1.4rem 0;
+}
+
+.fit-guide-stats div {
+    padding: .8rem;
+    border: 1px solid rgba(255, 255, 255, .11);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .055);
+}
+
+.fit-guide-stats span,
+.fit-guide-stats strong {
+    display: block;
+}
+
+.fit-guide-stats span {
+    margin-bottom: .15rem;
+    color: #91a097;
+    font-size: .68rem;
+    text-transform: uppercase;
+}
+
+.fit-guide-stats strong {
+    color: var(--white);
+    font-size: .88rem;
+}
+
+.fit-guide .btn {
+    position: relative;
+    z-index: 1;
+}
+
+.fit-report {
+    margin-top: 4rem;
+    scroll-margin-top: 7rem;
+}
+
+.fit-report-hero {
+    position: relative;
+    padding: clamp(2rem, 5vw, 4rem);
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--lime);
+}
+
+.fit-report-hero::before {
+    position: absolute;
+    top: -11rem;
+    right: -9rem;
+    width: 28rem;
+    height: 28rem;
+    border: 1px solid rgba(17, 24, 21, .13);
+    border-radius: 50%;
+    box-shadow: 0 0 0 4rem rgba(17, 24, 21, .025), 0 0 0 8rem rgba(17, 24, 21, .018);
+    content: "";
+}
+
+.fit-tone-caution.fit-report-hero {
+    background: #ffd8ce;
+}
+
+.fit-report-title {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+.fit-report-title h2 {
+    max-width: 780px;
+    margin: .8rem 0;
+    font-size: clamp(2.4rem, 6vw, 5rem);
+    font-weight: 800;
+    line-height: .95;
+}
+
+.fit-report-title > div:first-child > p:last-child {
+    max-width: 670px;
+    margin: 0;
+    color: rgba(17, 24, 21, .68);
+    font-size: 1rem;
+    line-height: 1.65;
+}
+
+.fit-report-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: .55rem;
+}
+
+.fit-verdict-pill {
+    display: inline-flex;
+    padding: .42rem .7rem;
+    border-radius: 100px;
+    background: var(--ink);
+    color: var(--white);
+    font-size: .75rem;
+    font-weight: 800;
+}
+
+.fit-tone-caution .fit-verdict-pill {
+    background: #8a3828;
+}
+
+.fit-snapshot-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: .7rem;
+    margin-top: 2.5rem;
+}
+
+.fit-snapshot {
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid rgba(17, 24, 21, .16);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, .42);
+}
+
+.fit-snapshot span,
+.fit-snapshot strong,
+.fit-snapshot small {
+    display: block;
+}
+
+.fit-snapshot span {
+    margin-bottom: .25rem;
+    color: rgba(17, 24, 21, .6);
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.fit-snapshot strong {
+    margin-bottom: .25rem;
+    overflow-wrap: anywhere;
+    font-family: "Manrope", sans-serif;
+    font-size: 1.05rem;
+}
+
+.fit-snapshot small {
+    color: rgba(17, 24, 21, .58);
+    font-size: .68rem;
+    line-height: 1.4;
+}
+
+.fit-report-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.fit-report-card {
+    position: relative;
+    padding: 2rem;
+    overflow: hidden;
+}
+
+.fit-card-icon {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    display: grid;
+    width: 3rem;
+    height: 3rem;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--mint);
+    color: #275c3c;
+    font-size: 1.2rem;
+}
+
+.fit-report-card .eyebrow {
+    padding-right: 4rem;
+}
+
+.fit-report-card h3 {
+    max-width: 520px;
+    margin: .35rem 0 .7rem;
+    font-size: clamp(1.5rem, 3vw, 2.15rem);
+    font-weight: 800;
+}
+
+.fit-report-card > p:not(.eyebrow) {
+    max-width: 620px;
+    min-height: 3.2rem;
+    line-height: 1.6;
+}
+
+.fit-report-card > p strong {
+    color: var(--ink);
+}
+
+.fit-detail-list {
+    margin: 1.4rem 0 0;
+}
+
+.fit-detail-list div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: .7rem 0;
+    border-top: 1px solid var(--line);
+}
+
+.fit-detail-list dt {
+    color: var(--muted);
+    font-size: .78rem;
+    font-weight: 500;
+}
+
+.fit-detail-list dd {
+    max-width: 62%;
+    margin: 0;
+    color: var(--ink);
+    font-size: .8rem;
+    font-weight: 800;
+    text-align: right;
+}
+
+.fit-card-link {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    margin-top: 1rem;
+    color: var(--ink);
+    font-size: .82rem;
+    font-weight: 800;
+    text-underline-offset: 4px;
+}
+
+.fit-methodology {
+    margin-top: 1rem;
 }
 
 /* Station finder */
@@ -1481,6 +1910,39 @@ label {
     }
 }
 
+@media print {
+    body {
+        background: var(--white);
+    }
+
+    .site-nav,
+    .site-footer,
+    .page-heading,
+    .fit-workspace,
+    .no-print {
+        display: none !important;
+    }
+
+    .page-main {
+        max-width: none;
+        padding: 0;
+    }
+
+    .fit-report {
+        margin: 0;
+    }
+
+    .fit-report-hero,
+    .fit-report-card {
+        break-inside: avoid;
+        box-shadow: none;
+    }
+
+    .fit-report-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 @media (max-width: 991.98px) {
     .site-nav .navbar-collapse {
         margin-top: .8rem;
@@ -1555,6 +2017,18 @@ label {
         position: static;
     }
 
+    .fit-workspace {
+        grid-template-columns: 1fr;
+    }
+
+    .fit-guide {
+        position: static;
+    }
+
+    .fit-snapshot-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
     .results-toolbar {
         grid-template-columns: 1fr 1fr;
     }
@@ -1620,6 +2094,12 @@ label {
         padding: 5rem 0;
     }
 
+    .fit-feature-card {
+        align-items: flex-start;
+        flex-direction: column;
+        min-height: 380px;
+    }
+
     .account-banner {
         align-items: flex-start;
         flex-direction: column;
@@ -1635,9 +2115,21 @@ label {
         padding: 1.25rem;
     }
 
+    .fit-form-panel {
+        padding: 1.25rem;
+    }
+
     .form-submit {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    .fit-report-title {
+        flex-direction: column;
+    }
+
+    .fit-report-grid {
+        grid-template-columns: 1fr;
     }
 
     .search-row,
@@ -1718,5 +2210,13 @@ label {
 
     .status-choice {
         grid-template-columns: 1fr;
+    }
+
+    .fit-snapshot-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .fit-report-actions {
+        flex-wrap: wrap;
     }
 }
