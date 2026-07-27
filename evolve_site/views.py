@@ -295,6 +295,13 @@ class StationListView(TemplateView):
             
             stations = NRELClient.get_stations(location)
             source_station_count = len(stations)
+
+            # Build the network dropdown from every station returned for this
+            # location, before applying filters or pagination.
+            form.set_network_choices(
+                station.get('ev_network')
+                for station in stations
+            )
             
             if not stations and location:
                 error_message = "No stations found or API unavailable. Please try again."
@@ -314,10 +321,11 @@ class StationListView(TemplateView):
                 ]
 
             if network:
-                selected_network = network.lower()
+                selected_network = network.strip().casefold()
                 stations = [
                     station for station in stations
-                    if selected_network in str(station.get('ev_network') or '').lower()
+                    if selected_network
+                    == str(station.get('ev_network') or '').strip().casefold()
                 ]
             
             # Merge local status

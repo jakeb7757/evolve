@@ -70,16 +70,6 @@ class StationSearchForm(forms.Form):
         ('TESLA', 'Tesla/NACS'),
     ]
     
-    NETWORK_CHOICES = [
-        ('', 'All Networks'),
-        ('Tesla', 'Tesla Supercharger'),
-        ('Electrify America', 'Electrify America'),
-        ('EVgo Network', 'EVgo'),
-        ('ChargePoint Network', 'ChargePoint'),
-        ('Blink Network', 'Blink'),
-        ('Francis Energy', 'Francis Energy'),
-    ]
-    
     search_type = forms.ChoiceField(
         label="Search By",
         choices=SEARCH_TYPE_CHOICES,
@@ -115,12 +105,30 @@ class StationSearchForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     
-    network = forms.ChoiceField(
+    # The API determines these choices for each search. CharField keeps a
+    # submitted API network valid before the view has fetched that result set.
+    network = forms.CharField(
         label="Network",
-        choices=NETWORK_CHOICES,
         required=False,
-        widget=forms.Select(attrs={'class': 'form-select'})
+        widget=forms.Select(
+            choices=[('', 'All Networks')],
+            attrs={'class': 'form-select'},
+        )
     )
+
+    def set_network_choices(self, networks):
+        """Populate the network filter from the current API result set."""
+        unique_networks = {}
+        for value in networks:
+            network = str(value or '').strip()
+            if network:
+                unique_networks.setdefault(network.casefold(), network)
+
+        sorted_networks = sorted(unique_networks.values(), key=str.casefold)
+        self.fields['network'].widget.choices = [
+            ('', 'All Networks'),
+            *((network, network) for network in sorted_networks),
+        ]
     
     def clean(self):
         cleaned_data = super().clean()

@@ -516,10 +516,78 @@ class StationListViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['source_station_count'], 15)
         self.assertEqual(response.context['paginator'].count, 3)
+        self.assertEqual(
+            list(response.context['form'].fields['network'].widget.choices),
+            [
+                ('', 'All Networks'),
+                ('eVgo Network', 'eVgo Network'),
+                ('Tesla', 'Tesla'),
+            ],
+        )
         self.assertTrue(all(
             station['ev_network'] == 'eVgo Network'
             for station in response.context['stations']
         ))
+
+    @patch('evolve_site.views.NRELClient.get_stations')
+    def test_network_choices_come_from_current_api_results(self, mock_get_stations):
+        """The dropdown includes only networks returned for this search."""
+        mock_get_stations.return_value = [
+            {
+                'id': 1,
+                'station_name': 'IONNA Station',
+                'ev_dc_fast_num': 8,
+                'ev_network': 'IONNA',
+                'ev_connector_types': ['J1772COMBO'],
+            },
+            {
+                'id': 2,
+                'station_name': 'Rivian Station',
+                'ev_dc_fast_num': 6,
+                'ev_network': 'Rivian Adventure Network',
+                'ev_connector_types': ['J1772COMBO'],
+            },
+            {
+                'id': 3,
+                'station_name': 'Duplicate IONNA Station',
+                'ev_dc_fast_num': 4,
+                'ev_network': 'IONNA',
+                'ev_connector_types': ['J1772COMBO'],
+            },
+            {
+                'id': 4,
+                'station_name': 'No Network Station',
+                'ev_dc_fast_num': 2,
+                'ev_network': None,
+                'ev_connector_types': ['J1772COMBO'],
+            },
+        ]
+
+        response = self.client.get(reverse('evolve_site:station_list'), {
+            'search_type': 'city',
+            'city_state': 'Oklahoma City, OK',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            list(response.context['form'].fields['network'].widget.choices),
+            [
+                ('', 'All Networks'),
+                ('IONNA', 'IONNA'),
+                ('Rivian Adventure Network', 'Rivian Adventure Network'),
+            ],
+        )
+        self.assertContains(response, '<option value="IONNA">IONNA</option>', html=True)
+        self.assertContains(
+            response,
+            (
+                '<option value="Rivian Adventure Network">'
+                'Rivian Adventure Network'
+                '</option>'
+            ),
+            html=True,
+        )
+        self.assertNotContains(response, '<option value="Tesla">Tesla</option>', html=True)
 
     @patch('evolve_site.views.NRELClient.get_stations')
     def test_station_list_handles_api_failure(self, mock_get_stations):
